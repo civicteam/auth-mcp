@@ -48,9 +48,11 @@ app.use(await civicAuth({
   issuerUrl: new URL("http://localhost:33006"),
 }));
 
+// In production you would need session management
+const transport = new StreamableHTTPServerTransport();
+
 // Set up MCP endpoint
 app.post("/mcp", async (req, res) => {
-  const transport = new StreamableHTTPServerTransport();
   await mcpServer.connect(transport);
   await transport.handleRequest(req, res, req.body);
 });

@@ -30,8 +30,6 @@ export class CLIClient extends Client {
 			console.log("Error connecting to MCP server:", error);
 			// Check if this is an authorization error
 			if (error instanceof Error) {
-				console.log("Error name:", error.name);
-				console.log("Error message:", error.message);
 				if (error.message === "Unauthorized") {
 					console.log(
 						"Authorization required, waiting for user to complete OAuth flow...",
@@ -40,12 +38,17 @@ export class CLIClient extends Client {
 
 					// only wait if the tokens have not been set already
 					if (!authProvider.tokens()) {
+						console.log("Waiting for authorization code...");
 						// Wait for the OAuth flow to complete
 						await authProvider.waitForAuthorizationCode();
 						console.log("Authorization completed.");
 
 						// Retry the connection - the auth provider now has tokens
 						return await super.connect(transport);
+					} else {
+						console.log(
+							"Authorization already completed, but still unauthorized.",
+						);
 					}
 				}
 			}

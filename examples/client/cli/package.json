@@ -1,0 +1,23 @@
+{
+  "name": "@civic/client-cli-example",
+  "version": "1.0.0",
+  "description": "CLI example for MCP Auth Client",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": ["mcp", "auth", "cli", "example"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@civic/auth-mcp": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.11.5",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}

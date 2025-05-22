@@ -39,7 +39,10 @@ export class RestartableStreamableHTTPClientTransport extends StreamableHTTPClie
 			await super.start();
 		} catch (error) {
 			// ignore restart errors here
-			console.log("Error starting transport:", error);
 		}
+	}
+
+	override async close() {
+		// do nothing for now
 	}
 }

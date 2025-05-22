@@ -1,0 +1,25 @@
+{
+  "name": "@civic/server-example",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "dev:stdio": "tsx watch src/index.ts -- --stdio",
+    "lint": "biome check .",
+    "lint:fix": "biome check --fix ."
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.5",
+    "@civic/auth-mcp": "workspace:*",
+    "express": "^4.18.2",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.0",
+    "tsx": "^4.5.0",
+    "typescript": "^5.2.2"
+  }
+}

@@ -1,0 +1,4 @@
+packages:
+  - 'library'
+  - 'examples/client/*'
+  - 'examples/server/*'
