@@ -9,6 +9,13 @@ export type AuthOptions = {
 	router: Omit<AuthRouterOptions, "provider">;
 };
 
+
+export type ExtendedJWTPayload = {
+	email?: string;
+	name?: string;
+	picture?: string;
+}
+
 /**
  * OIDC Well-Known Configuration from the discovery endpoint
  */

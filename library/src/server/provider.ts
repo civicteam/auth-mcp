@@ -1,9 +1,9 @@
 import type { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/shared/auth.js";
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import { CIVIC_AUTH_WELL_KNOWN_URL, DEFAULT_SCOPE } from "../constants.js";
+import { CIVIC_AUTH_WELL_KNOWN_URL } from "../constants.js";
 import {
 	AuthOptions,
-	CivicOAuthProviderOptions,
+	CivicOAuthProviderOptions, ExtendedJWTPayload,
 	OIDCWellKnownConfiguration,
 } from "./types.js";
 
@@ -48,11 +48,18 @@ export async function createCivicOAuthProvider(
 					issuer: config.issuer,
 				});
 
+				const { email, name, picture } = payload as ExtendedJWTPayload
+
 				// Extract relevant fields from the payload
 				return {
 					token,
-					clientId: (payload.client_id as string) || (payload.sub as string),
+					clientId: (payload.client_id as string) || (payload.aud as string), // aud is used in the id token,
 					scopes: payload.scope ? (payload.scope as string).split(" ") : [],
+					// include id token claims if the id token is passed
+					extra: {
+						sub: payload.sub as string,
+						...(email ? {email, name, picture} : {})
+					},
 				};
 			},
 			getClient: async (client_id) => {

@@ -21,12 +21,13 @@ mcpServer.tool(
     "whoami",
     "Get information about the current user",
     {},
-    async () => {
+    async (_, extra ) => {
+        const user = extra.authInfo?.extra?.name ?? extra.authInfo?.extra?.sub;
         return {
             content: [
                 {
                     type: "text",
-                    text: "You are an authenticated user using the Civic Auth MCP server example.",
+                    text: `Hello ${user}!`,
                 },
             ],
         };
