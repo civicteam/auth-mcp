@@ -1,150 +1,46 @@
 # @civic/auth-mcp
 
-Authentication for Model Context Protocol (MCP) servers and clients. This package provides a complete authentication solution for MCP, allowing easy integration with Civic's authentication service.
+🔐 **Authentication for Model Context Protocol** - Monorepo
 
-## Features
+This repository contains the Civic Auth MCP library and examples for adding secure authentication to MCP servers and clients.
 
-- **Server-side Integration**:
-  - Express middleware for easy setup
-  - Framework-agnostic OAuth provider
-  - FastMCP integration
-  - OAuth endpoints that forward to Civic's auth service
+## 📦 Packages
 
-- **Client-side Integration**:
-  - CLI authentication flow with browser redirection
-  - Token-based authentication
-  - Client credentials flow for server-to-server auth
-  - Browser-based authentication with customizable UI
+- **[`library/`](./library/)** - The main `@civic/auth-mcp` package ([npm](https://www.npmjs.com/package/@civic/auth-mcp))
+- **[`examples/`](./examples/)** - Example implementations and demos
 
-## Installation
+## 🚀 Quick Start
 
 ```bash
-npm install @civic/auth-mcp @modelcontextprotocol/sdk
-# or
-yarn add @civic/auth-mcp @modelcontextprotocol/sdk
-# or
+# Install the library
 pnpm add @civic/auth-mcp @modelcontextprotocol/sdk
+
+# Run examples
+pnpm install
+pnpm build
+pnpm --filter example-server start
 ```
 
-## Server-side Usage
+## 🛠️ Development
 
-### Express Middleware
+```bash
+# Install dependencies
+pnpm install
 
-```typescript
-import { civicAuth } from "@civic/auth-mcp/server/express";
+# Build all packages
+pnpm build
 
-// Create the MCP server
-const mcpServer = new Server({
-  name: "weather-mcp-server",
-  version: "0.0.1",
-});
+# Run tests
+pnpm test
 
-// Register your tools
-mcpServer.tool(/* tool details */);
-
-// Add Civic auth middleware
-app.use(await civicAuth({
-  redirectUris: ["http://localhost:8080/callback"],
-  issuerUrl: new URL("http://localhost:33006"),
-}));
-
-// In production you would need session management
-const transport = new StreamableHTTPServerTransport();
-
-// Set up MCP endpoint
-app.post("/mcp", async (req, res) => {
-  await mcpServer.connect(transport);
-  await transport.handleRequest(req, res, req.body);
-});
+# Run linting
+pnpm lint
 ```
 
-### Framework-agnostic Provider
+## 📚 Documentation
 
-```typescript
-import { createCivicOAuthProvider } from "@civic/auth-mcp/server";
+Full documentation and usage examples are available in the [`library/`](./library/) package.
 
-const mcpServer = new Server({
-  name: "weather-mcp-server",
-  version: "0.0.1",
-});
+## 📄 License
 
-// Create the Civic OAuth provider
-const oauthProvider = await createCivicOAuthProvider({
-  redirectUris: ["http://localhost:8080/callback"],
-});
-
-// Express example - note if using express, it is easier to use the civicAuth middleware in the previous example.
-// This uses the express-specific mcpAuthRouter provided by @modelcontextprotocol/sdk.
-// other examples using, eg., hono to follow.
-app.use(mcpAuthRouter({
-  provider: oauthProvider,
-  issuerUrl: new URL("http://localhost:33006"),
-  serviceDocumentationUrl: new URL("https://docs.civic.com/"),
-}));
-
-app.use(requireBearerAuth({
-  provider: oauthProvider,
-}));
-```
-
-## Client-side Usage
-
-### CLI Client Integration
-
-```typescript
-import { CLIAuthProvider, RestartableStreamableHTTPClientTransport } from "@civic/auth-mcp/client";
-
-// Create the auth provider
-const authProvider = new CLIAuthProvider({
-  clientId: "your-client-id",
-  scope: "openid profile email",
-  callbackPort: 8080,
-});
-
-// Create the transport with auth provider
-const transport = new RestartableStreamableHTTPClientTransport(
-  new URL("http://localhost:33006"),
-  { authProvider }
-);
-
-// Create and connect client
-const mcpClient = new CLIClient(
-    { name: "cli-example", version: "0.0.1" }, 
-    { capabilities: {} }
-);
-
-// Connect to the server
-await mcpClient.connect(transport);
-```
-
-### Token Authentication
-
-```typescript
-import { TokenAuthProvider, RestartableStreamableHTTPClientTransport } from "@civic/auth-mcp/client";
-
-// Create with pre-obtained tokens
-const authProvider = new TokenAuthProvider({
-  tokens: {
-    accessToken: "your-access-token",
-    refreshToken: "your-refresh-token",
-    idToken: "your-id-token",
-  }
-});
-
-// Create transport and client
-const transport = new RestartableStreamableHTTPClientTransport(
-  new URL("http://localhost:33006"),
-  { authProvider }
-);
-
-const mcpClient = new Client(
-  { name: "example-client", version: "0.0.1" },
-  { capabilities: {} }
-);
-
-await mcpClient.connect(transport);
-```
-
-## License
-
-This package is licensed under the MIT License.
+MIT License

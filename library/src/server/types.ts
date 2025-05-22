@@ -9,12 +9,11 @@ export type AuthOptions = {
 	router: Omit<AuthRouterOptions, "provider">;
 };
 
-
 export type ExtendedJWTPayload = {
 	email?: string;
 	name?: string;
 	picture?: string;
-}
+};
 
 /**
  * OIDC Well-Known Configuration from the discovery endpoint
@@ -76,16 +75,6 @@ export interface CivicOAuthProviderOptions {
  * Configuration options for the Express civicAuth middleware
  */
 export interface CivicAuthMiddlewareOptions extends CivicOAuthProviderOptions {
-	/**
-	 * Base path for all auth-related endpoints (defaults to "/auth")
-	 */
-	basePath?: string;
-}
-
-/**
- * Configuration options for the Civic Auth Proxy
- */
-export interface CivicAuthProxyOptions extends CivicOAuthProviderOptions {
 	/**
 	 * Base path for all auth-related endpoints (defaults to "/auth")
 	 */

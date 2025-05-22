@@ -45,11 +45,10 @@ export class CLIClient extends Client {
 
 						// Retry the connection - the auth provider now has tokens
 						return await super.connect(transport);
-					} else {
-						console.log(
-							"Authorization already completed, but still unauthorized.",
-						);
 					}
+					console.log(
+						"Authorization already completed, but still unauthorized.",
+					);
 				}
 			}
 

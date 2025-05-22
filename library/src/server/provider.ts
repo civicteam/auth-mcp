@@ -3,7 +3,8 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { CIVIC_AUTH_WELL_KNOWN_URL } from "../constants.js";
 import {
 	AuthOptions,
-	CivicOAuthProviderOptions, ExtendedJWTPayload,
+	CivicOAuthProviderOptions,
+	ExtendedJWTPayload,
 	OIDCWellKnownConfiguration,
 } from "./types.js";
 
@@ -48,7 +49,7 @@ export async function createCivicOAuthProvider(
 					issuer: config.issuer,
 				});
 
-				const { email, name, picture } = payload as ExtendedJWTPayload
+				const { email, name, picture } = payload as ExtendedJWTPayload;
 
 				// Extract relevant fields from the payload
 				return {
@@ -58,7 +59,7 @@ export async function createCivicOAuthProvider(
 					// include id token claims if the id token is passed
 					extra: {
 						sub: payload.sub as string,
-						...(email ? {email, name, picture} : {})
+						...(email ? { email, name, picture } : {}),
 					},
 				};
 			},

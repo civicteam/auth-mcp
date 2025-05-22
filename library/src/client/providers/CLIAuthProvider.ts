@@ -10,7 +10,7 @@ import type {
 	OAuthClientMetadata,
 	OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
-import { DEFAULT_SCOPE } from "../../constants.js";
+import { DEFAULT_CALLBACK_PORT, DEFAULT_SCOPE } from "../../constants.js";
 import {
 	CivicAuthProvider,
 	CivicAuthProviderOptions,
@@ -46,7 +46,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
 		super(options);
 		this.clientId = options.clientId;
 		this.scope = options.scope || DEFAULT_SCOPE;
-		this.callbackPort = options.callbackPort || 8080;
+		this.callbackPort = options.callbackPort || DEFAULT_CALLBACK_PORT;
 	}
 
 	clientInformation():

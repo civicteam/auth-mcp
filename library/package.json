@@ -1,6 +1,6 @@
 {
   "name": "@civic/auth-mcp",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Civic Authentication for Model Context Protocol",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
