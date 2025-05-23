@@ -6,9 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "dev:stdio": "tsx watch src/index.ts -- --stdio",
-    "lint": "biome check .",
-    "lint:fix": "biome check --fix ."
+    "dev:stdio": "tsx watch src/index.ts -- --stdio"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",

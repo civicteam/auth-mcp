@@ -11,7 +11,7 @@ This repository contains the Civic Auth MCP library and examples for adding secu
 
 ## 📦 Packages
 
-- **[`library/`](./library/)** - The main `@civic/auth-mcp` package ([npm](https://www.npmjs.com/package/@civic/auth-mcp))
+- **[`library/`](./library/)** - The main `@civic/auth-mcp` pacwe ckage ([npm](https://www.npmjs.com/package/@civic/auth-mcp))
 - **[`examples/`](./examples/)** - Example implementations and demos
 
 ## 🚀 Quick Start
