@@ -15,6 +15,17 @@ describe("TokenAuthProvider", () => {
 		provider = new TokenAuthProvider({ tokens: mockTokens });
 	});
 
+	describe("with string constructor", () => {
+		it("should accept a token string directly", () => {
+			const tokenProvider = new TokenAuthProvider("test-token-string");
+			const tokens = tokenProvider.tokens();
+			expect(tokens).toEqual({
+				access_token: "test-token-string",
+				token_type: "Bearer"
+			});
+		});
+	});
+
 	it("should return the provided tokens when tokens() is called", async () => {
 		const tokens = provider.tokens();
 		expect(tokens).toEqual(mockTokens);
@@ -25,16 +36,10 @@ describe("TokenAuthProvider", () => {
 		expect(clientInfo).toEqual({ client_id: "token-client" });
 	});
 
-	it("should return redirect URL", () => {
-		const redirectUrl = provider.redirectUrl;
-		expect(redirectUrl).toBe("http://localhost:8080/callback");
-	});
-
 	it("should return client metadata", () => {
 		const metadata = provider.clientMetadata;
 		expect(metadata).toEqual({
-			redirect_uris: ["http://localhost:8080/callback"],
-			scope: "openid profile email",
+			redirect_uris: []
 		});
 	});
 

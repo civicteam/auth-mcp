@@ -21,14 +21,24 @@ It works with any compliant OAuth2/OIDC provider, while being optimized for Civi
 
 - Client and server SDKs for easy integration
 - Express middleware for quick setup
-- Framework-agnostic OAuth provider
+- Framework-agnostic core for use with any nodejs framework
 - CLI authentication for integration with command-line tools
 
 ## 🚀 Quick Start
 
+ Install the dependencies:
+
 ```bash
 npm install @civic/auth-mcp @modelcontextprotocol/sdk
 ```
+
+Add the middleware to your express app:
+
+```typescript
+app.use(await auth());
+```
+
+That's it!
 
 ## 🛠️ Usage Examples
 
@@ -37,9 +47,9 @@ npm install @civic/auth-mcp @modelcontextprotocol/sdk
 The fastest way to secure an MCP server. Works smoothly with [Anthropic's SDK](https://www.npmjs.com/package/@modelcontextprotocol/sdk).
 
 ```typescript
-import { civicAuth } from "@civic/auth-mcp/server/express";
+import { auth } from "@civic/auth-mcp";
 
-// Create the MCP server
+// Create your MCP server
 const mcpServer = new Server({
   name: "weather-mcp-server",
   version: "0.0.1",
@@ -48,11 +58,8 @@ const mcpServer = new Server({
 // Register your tools
 mcpServer.tool(/* your tool details */);
 
-// Add Civic auth middleware
-app.use(await civicAuth({
-  redirectUris: ["http://localhost:8080/callback"],
-  issuerUrl: new URL("http://localhost:33006"),
-}));
+// Add auth middleware
+app.use(await auth());
 
 // In production you would need session management
 const transport = new StreamableHTTPServerTransport();
@@ -64,32 +71,50 @@ app.post("/mcp", async (req, res) => {
 });
 ```
 
-### ⚡ Framework-Agnostic Provider
+### ⚙️ Configuration Options
 
 ```typescript
-import { createCivicOAuthProvider } from "@civic/auth-mcp/server";
-
-const mcpServer = new Server({
-  name: "weather-mcp-server",
-  version: "0.0.1",
-});
-
-// Create the Civic OAuth provider
-const oauthProvider = await createCivicOAuthProvider({
-  redirectUris: ["http://localhost:8080/callback"],
-});
-
-// Express example - note if using express, it is easier to use the civicAuth middleware in the previous example.
-// This uses the express-specific mcpAuthRouter provided by @modelcontextprotocol/sdk.
-// other examples using, eg., hono to follow.
-app.use(mcpAuthRouter({
-  provider: oauthProvider,
-  issuerUrl: new URL("http://localhost:33006"),
-  serviceDocumentationUrl: new URL("https://docs.civic.com/"),
+// Use a different auth server:
+app.use(await auth({
+  wellKnownUrl: 'https://accounts.google.com/.well-known/openid-configuration'
 }));
-app.use(requireBearerAuth({
-  provider: oauthProvider,
+
+// Or specify additional options
+app.use(await auth({
+  issuerUrl: 'https://my-mcp-server.com',
+  scopesSupported: ['openid', 'profile', 'email', 'custom:scope']
 }));
+```
+
+### ⚡ Framework-Agnostic Usage
+
+For non-Express frameworks, use the `McpServerAuth` class directly:
+
+```typescript
+import { McpServerAuth } from "@civic/auth-mcp";
+
+// Initialize the auth server
+const mcpServerAuth = await McpServerAuth.init();
+
+// In your framework's route handler:
+// 1. Expose the protected resource metadata
+if (path === '/.well-known/oauth-protected-resource') {
+  const metadata = mcpServerAuth.getProtectedResourceMetadata('https://my-server.com');
+  return json(metadata);
+}
+
+// 2. Validate bearer tokens
+const token = McpServerAuth.extractBearerToken(authHeader);
+if (!token) {
+  return unauthorized('Missing bearer token');
+}
+
+const authInfo = await mcpServerAuth.verifyToken(token);
+if (!authInfo) {
+  return unauthorized('Invalid token');
+}
+
+// Use authInfo.clientId, authInfo.scopes, authInfo.extra.email, etc.
 ```
 
 ## 💻 Client Integration
@@ -97,18 +122,17 @@ app.use(requireBearerAuth({
 ### 🖥️ CLI Client
 
 ```typescript
-import { CLIAuthProvider, RestartableStreamableHTTPClientTransport } from "@civic/auth-mcp/client";
+import { CLIAuthProvider, RestartableStreamableHTTPClientTransport, CLIClient } from "@civic/auth-mcp/client";
 
 // Create the auth provider
 const authProvider = new CLIAuthProvider({
-  clientId: "your-client-id",
-  scope: "openid profile email",
-  callbackPort: 8080,
+  clientId: "your-client-id", // Get your client ID from auth.civic.com
+  // clientSecret: "your-secret", // Optional: only for non-PKCE auth servers
 });
 
 // Create the transport with auth provider
 const transport = new RestartableStreamableHTTPClientTransport(
-  new URL("http://localhost:33006"),
+  new URL("http://localhost:33006/mcp"),
   { authProvider }
 );
 
@@ -126,19 +150,14 @@ await mcpClient.connect(transport);
 
 ```typescript
 import { TokenAuthProvider, RestartableStreamableHTTPClientTransport } from "@civic/auth-mcp/client";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
-// Create with pre-obtained tokens
-const authProvider = new TokenAuthProvider({
-  tokens: {
-    accessToken: "your-access-token",
-    refreshToken: "your-refresh-token",
-    idToken: "your-id-token",
-  }
-});
+// Create with pre-obtained token
+const authProvider = new TokenAuthProvider("your-jwt-token");
 
 // Create transport and client
 const transport = new RestartableStreamableHTTPClientTransport(
-  new URL("http://localhost:33006"),
+  new URL("http://localhost:33006/mcp"),
   { authProvider }
 );
 
@@ -156,23 +175,24 @@ await mcpClient.connect(transport);
 
 **🚀 Zero-Friction Setup**
 - Drop-in Express middleware that works out of the box
-- Framework-agnostic OAuth provider for maximum flexibility
-- Native FastMCP integration for lightning-fast development
+- One-line integration 
 
 **🔒 Enterprise Security, Startup Speed**
-- Works seamlessly with Civic-Auth, a battle-tested and secure authentication provider
+- Works seamlessly with Civic Auth, a battle-tested and secure authentication provider
 - Automatic token refresh and session management
 - Privacy-first design with minimal data collection
+- PKCE-support
 
 **🎯 Developer Experience First**
 - CLI authentication with automatic browser flow
-- Multiple auth patterns: tokens, client credentials, browser-based
+- Multiple auth patterns: tokens, OAuth flow, pre-authenticated
 - TypeScript-first with comprehensive type safety
 
 **🌐 Production Ready**
 - Comprehensive error handling and retry logic
 - Built-in transport layer with connection recovery
-- 
+- Lightweight with minimal dependencies
+
 ---
 
 ## 🌟 What's Next?

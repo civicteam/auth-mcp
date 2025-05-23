@@ -11,7 +11,7 @@
     "lint:fix": "biome check --fix ."
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.11.5",
+    "@modelcontextprotocol/sdk": "^1.12.0",
     "@civic/auth-mcp": "workspace:*",
     "express": "^4.18.2",
     "zod": "^3.24.3"

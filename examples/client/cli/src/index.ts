@@ -13,6 +13,7 @@ async function main() {
     // Create the auth provider
     const authProvider = new CLIAuthProvider({
         clientId: process.env.OAUTH_CLIENT_ID,
+        useIDToken: true,
     });
 
     // Create the transport with auth provider
@@ -38,11 +39,10 @@ async function main() {
         arguments: {}
     });
 
-    console.log("\nTool result:", result);
+    console.log((result.content as [{ text: string }])[0].text);
 
     // Close the client connection
     await mcpClient.close();
-    console.log("\nClient connection closed");
 }
 
 main();

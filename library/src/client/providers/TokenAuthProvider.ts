@@ -17,16 +17,6 @@ export interface TokenAuthProviderOptions extends CivicAuthProviderOptions {
 	 * OAuth tokens to use for authentication
 	 */
 	tokens: OAuthTokens;
-
-	/**
-	 * Client metadata for OAuth flows
-	 */
-	clientMetadata?: OAuthClientMetadata;
-
-	/**
-	 * Redirect URL for OAuth flows (not used for token-based auth)
-	 */
-	redirectUrl?: string | URL;
 }
 
 /**
@@ -35,26 +25,29 @@ export interface TokenAuthProviderOptions extends CivicAuthProviderOptions {
  * and want to use them directly with the MCP client.
  */
 export class TokenAuthProvider extends CivicAuthProvider {
-	private storedClientMetadata: OAuthClientMetadata;
-	private storedRedirectUrl: string | URL;
-
-	constructor(options: TokenAuthProviderOptions) {
+	/**
+	 * Create a new TokenAuthProvider
+	 * @param tokenOrOptions - Either a token string or full options object
+	 */
+	constructor(tokenOrOptions: string | TokenAuthProviderOptions) {
+		// Handle simple string constructor for convenience
+		const options: TokenAuthProviderOptions = typeof tokenOrOptions === 'string' 
+			? { tokens: { access_token: tokenOrOptions, token_type: 'Bearer' } }
+			: tokenOrOptions;
+			
 		super(options);
 		this.storedTokens = options.tokens;
-		this.storedClientMetadata = options.clientMetadata || {
-			redirect_uris: ["http://localhost:8080/callback"],
-			scope: "openid profile email",
-		};
-		this.storedRedirectUrl =
-			options.redirectUrl || "http://localhost:8080/callback";
 	}
 
 	get redirectUrl(): string | URL {
-		return this.storedRedirectUrl;
+		// No redirect URL needed for token-based auth
+		return "";
 	}
 
 	get clientMetadata(): OAuthClientMetadata {
-		return this.storedClientMetadata;
+		return {
+			redirect_uris: []
+		}
 	}
 
 	clientInformation(): OAuthClientInformation | undefined {

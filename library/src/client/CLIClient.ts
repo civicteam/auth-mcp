@@ -24,7 +24,6 @@ export class CLIClient extends Client {
 		transport: RestartableStreamableHTTPClientTransport,
 	): Promise<void> {
 		try {
-			console.log("Connecting to MCP server...");
 			await super.connect(transport);
 		} catch (error: unknown) {
 			console.log("Error connecting to MCP server:", error);
@@ -38,7 +37,6 @@ export class CLIClient extends Client {
 
 					// only wait if the tokens have not been set already
 					if (!authProvider.tokens()) {
-						console.log("Waiting for authorization code...");
 						// Wait for the OAuth flow to complete
 						await authProvider.waitForAuthorizationCode();
 						console.log("Authorization completed.");

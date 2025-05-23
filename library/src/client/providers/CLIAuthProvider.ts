@@ -53,9 +53,16 @@ export class CLIAuthProvider extends CivicAuthProvider {
 		| OAuthClientInformation
 		| Promise<OAuthClientInformation | undefined>
 		| undefined {
-		return {
+		const info: OAuthClientInformation = {
 			client_id: this.clientId,
 		};
+		
+		// Include client_secret if provided (for non-PKCE auth servers)
+		if (this.clientSecret) {
+			info.client_secret = this.clientSecret;
+		}
+		
+		return info;
 	}
 
 	get clientMetadata(): OAuthClientMetadata {

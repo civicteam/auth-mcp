@@ -8,23 +8,21 @@ import type {
 
 export interface CivicAuthProviderOptions {
 	/**
-	 * Whether to use the ID token instead of the access token for authorization.
-	 * When true, the ID token will be returned in place of the access token.
-	 * Defaults to false.
+	 * Client secret for OAuth flows that don't support PKCE.
+	 * Optional - only needed for auth servers that require client authentication.
 	 */
-	useIDToken?: boolean;
+	clientSecret?: string;
 }
 
 /**
  * Abstract base class for Civic auth providers
- * Provides common functionality including optional ID token usage
  */
 export abstract class CivicAuthProvider implements OAuthClientProvider {
-	protected useIDToken: boolean;
-	protected storedTokens: (OAuthTokens & { id_token?: string }) | undefined;
+	protected clientSecret?: string;
+	protected storedTokens: OAuthTokens | undefined;
 
 	constructor(options: CivicAuthProviderOptions) {
-		this.useIDToken = options.useIDToken ?? false;
+		this.clientSecret = options.clientSecret;
 	}
 
 	abstract clientInformation():
@@ -43,22 +41,9 @@ export abstract class CivicAuthProvider implements OAuthClientProvider {
 	abstract saveTokens(tokens: OAuthTokens): void;
 
 	/**
-	 * Returns the stored tokens, optionally swapping ID token for access token
-	 * if useidtoken option is enabled
+	 * Returns the stored tokens
 	 */
 	tokens(): OAuthTokens | undefined {
-		if (!this.storedTokens) {
-			return undefined;
-		}
-
-		// If useidtoken is true and we have an ID token, swap it for the access token
-		if (this.useIDToken && this.storedTokens.id_token) {
-			return {
-				...this.storedTokens,
-				access_token: this.storedTokens.id_token,
-			};
-		}
-
 		return this.storedTokens;
 	}
 
