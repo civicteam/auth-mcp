@@ -1,0 +1,40 @@
+# Add 'documentation' label to any change in docs files
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: 
+      - '**/*.md'
+      - 'docs/**'
+
+# Add 'library' label to changes in the library package
+library:
+  - changed-files:
+    - any-glob-to-any-file: 'library/**'
+
+# Add 'examples' label to changes in examples
+examples:
+  - changed-files:
+    - any-glob-to-any-file: 'examples/**'
+
+# Add 'dependencies' label to dependency updates
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/package.json'
+      - '**/pnpm-lock.yaml'
+      - '.npmrc'
+
+# Add 'ci' label to CI/CD changes
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
+      - 'turbo.json'
+
+# Add 'test' label to test changes
+test:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.ts'
+      - '**/*.spec.ts'
+      - '**/vitest.config.ts'
+      - '**/test/**'
