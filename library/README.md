@@ -1,5 +1,10 @@
 # @civic/auth-mcp
 
+[![CI](https://github.com/civicteam/auth-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/civicteam/auth-mcp/actions/workflows/ci.yml)
+[![npm version](https://badge.fury.io/js/%40civic%2Fauth-mcp.svg)](https://www.npmjs.com/package/@civic/auth-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![codecov](https://codecov.io/gh/civicteam/auth-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/civicteam/auth-mcp)
+
 🔐 **The Fastest Way to Add Authorization to MCP Servers**
 
 This is the fastest way to add authorization to MCP servers, enabling secure tool use in LLMs and providing confidence and security for you and your customers.
@@ -130,7 +135,8 @@ const authProvider = new CLIAuthProvider({
   // clientSecret: "your-secret", // Optional: only for non-PKCE auth servers
 });
 
-// Create the transport with auth provider
+// Create the restartable transport with auth provider
+// This transport allows restarting the connection after authorisation is granted
 const transport = new RestartableStreamableHTTPClientTransport(
   new URL("http://localhost:33006/mcp"),
   { authProvider }
@@ -156,7 +162,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 const authProvider = new TokenAuthProvider("your-jwt-token");
 
 // Create transport and client
-const transport = new RestartableStreamableHTTPClientTransport(
+const transport = new StreamableHTTPClientTransport(
   new URL("http://localhost:33006/mcp"),
   { authProvider }
 );
