@@ -2,10 +2,39 @@
   "name": "@civic/auth-mcp",
   "version": "0.1.0",
   "description": "Civic Auth integration for MCP servers",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "civic",
+    "auth",
+    "authentication",
+    "oauth",
+    "civic-auth"
+  ],
+  "homepage": "https://github.com/civicteam/auth-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/civicteam/auth-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/civicteam/auth-mcp.git",
+    "directory": "library"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Civic Technologies Inc.",
+    "email": "support@civic.com",
+    "url": "https://www.civic.com"
+  },
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -17,6 +46,9 @@
       "import": "./dist/client/index.js",
       "require": "./dist/client/index.cjs"
     }
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsup",
@@ -41,5 +73,9 @@
   },
   "peerDependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

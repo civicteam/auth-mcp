@@ -204,4 +204,4 @@ await mcpClient.connect(transport);
 
 ## 📄 License
 
-MIT License
+MIT © Civic Technologies Inc.
