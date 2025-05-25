@@ -21,7 +21,7 @@ mcpServer.tool(
     "Get information about the current user",
     {},
     async (_, extra) => {
-        const user = extra.authInfo?.extra?.name ?? extra.authInfo?.extra?.sub;
+        const user = extra.authInfo?.extra?.sub;
         return {
             content: [
                 {
