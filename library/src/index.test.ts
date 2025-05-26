@@ -5,6 +5,7 @@ import { auth } from "./index.js";
 
 let mockGetProtectedResourceMetadata: any;
 let mockVerifyToken: any;
+let mockHandleRequest: any;
 
 // Mock McpServerAuth
 vi.mock("./McpServerAuth.js", () => ({
@@ -16,18 +17,16 @@ vi.mock("./McpServerAuth.js", () => ({
         scopes_supported: ["openid", "profile", "email"],
         bearer_methods_supported: ["header"],
         resource_documentation: "https://docs.civic.com",
-        resource_policy_uri: "https://www.civic.com/privacy-policy",
+      resource_policy_uri: "https://www.civic.com/privacy-policy",
       }));
       mockVerifyToken = vi.fn();
+      mockHandleRequest = vi.fn();
       
       return {
         getProtectedResourceMetadata: mockGetProtectedResourceMetadata,
         verifyToken: mockVerifyToken,
+        handleRequest: mockHandleRequest,
       };
-    }),
-    extractBearerToken: vi.fn((header) => {
-      if (!header?.startsWith("Bearer ")) return null;
-      return header.substring(7);
     }),
   },
 }));
@@ -87,29 +86,33 @@ describe("auth middleware", () => {
         },
       };
 
-      mockVerifyToken.mockResolvedValue(mockAuthInfo);
+      mockHandleRequest.mockResolvedValue(mockAuthInfo);
 
       const response = await request(app)
         .get("/test")
         .set("Authorization", "Bearer valid.jwt.token")
         .expect(200);
 
-      expect(mockVerifyToken).toHaveBeenCalledWith("valid.jwt.token");
+      expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
       expect(response.body.auth).toEqual(mockAuthInfo);
     });
 
     it("should reject requests without authorization header", async () => {
+      mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
+
       const response = await request(app)
         .get("/test")
         .expect(401);
 
       expect(response.body).toEqual({
         error: "unauthorized",
-        error_description: "Missing or invalid authorization header",
+        error_description: "Authentication failed",
       });
     });
 
     it("should reject requests with invalid authorization header", async () => {
+      mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
+
       const response = await request(app)
         .get("/test")
         .set("Authorization", "Basic invalid")
@@ -117,19 +120,19 @@ describe("auth middleware", () => {
 
       expect(response.body).toEqual({
         error: "unauthorized",
-        error_description: "Missing or invalid authorization header",
+        error_description: "Authentication failed",
       });
     });
 
     it("should reject requests with invalid tokens", async () => {
-      mockVerifyToken.mockResolvedValue(null);
+      mockHandleRequest.mockRejectedValue(new Error("Token validation failed"));
 
       const response = await request(app)
         .get("/test")
         .set("Authorization", "Bearer invalid.jwt.token")
         .expect(401);
 
-      expect(mockVerifyToken).toHaveBeenCalledWith("invalid.jwt.token");
+      expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
       expect(response.body).toEqual({
         error: "invalid_token",
         error_description: "Token validation failed",
@@ -141,8 +144,8 @@ describe("auth middleware", () => {
         .get("/.well-known/oauth-protected-resource")
         .expect(200);
 
-      // Should not call verifyToken for metadata endpoint
-      expect(mockVerifyToken).not.toHaveBeenCalled();
+      // Should not call handleRequest for metadata endpoint
+      expect(mockHandleRequest).not.toHaveBeenCalled();
     });
   });
 

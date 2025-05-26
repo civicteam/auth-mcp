@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { RequestHandler } from "express";
+import type { RequestHandler, Request } from "express";
 import { McpServerAuth } from "./McpServerAuth.js";
 import type { CivicAuthOptions } from "./types.js";
 
@@ -20,11 +20,11 @@ export { McpServerAuth } from "./McpServerAuth.js";
  * @param options Configuration options
  * @returns Express middleware
  */
-export async function auth(options: CivicAuthOptions = {}): Promise<RequestHandler> {
+export async function auth(options: CivicAuthOptions<Request> = {}): Promise<RequestHandler> {
   console.log(`Civic Auth MCP middleware initialized with options: ${JSON.stringify(options)}`);
   
   // Initialize the core auth functionality
-  const mcpServerAuth = await McpServerAuth.init(options);
+  const mcpServerAuth = await McpServerAuth.init<Request>(options);
   
   // Create router
   const router = Router();
@@ -46,29 +46,35 @@ export async function auth(options: CivicAuthOptions = {}): Promise<RequestHandl
       return next();
     }
     
-    // Extract bearer token
-    const token = McpServerAuth.extractBearerToken(req.headers.authorization);
-    if (!token) {
-      return res.status(401).json({ 
-        error: 'unauthorized',
-        error_description: 'Missing or invalid authorization header' 
+    // Handle request authentication
+    try {
+      const authInfo = await mcpServerAuth.handleRequest(req);
+      
+      // Attach to request for downstream use
+      (req as any).auth = authInfo;
+      console.log("Got auth info:", authInfo);
+      
+      next();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'Authentication failed') {
+          return res.status(401).json({ 
+            error: 'unauthorized',
+            error_description: error.message
+          });
+        } else if (error.message === 'Token validation failed') {
+          return res.status(401).json({ 
+            error: 'invalid_token',
+            error_description: error.message
+          });
+        }
+      }
+      // Unknown error
+      return res.status(500).json({ 
+        error: 'internal_error',
+        error_description: 'An unexpected error occurred'
       });
     }
-    
-    // Verify token
-    const authInfo = await mcpServerAuth.verifyToken(token);
-    if (!authInfo) {
-      return res.status(401).json({ 
-        error: 'invalid_token',
-        error_description: 'Token validation failed' 
-      });
-    }
-    
-    // Attach to request for downstream use
-    (req as any).auth = authInfo;
-    console.log("Got auth info:", authInfo);
-    
-    next();
   });
   
   return router;
