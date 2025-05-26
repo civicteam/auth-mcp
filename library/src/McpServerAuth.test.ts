@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { jwtVerify } from "jose";
 import { McpServerAuth } from "./McpServerAuth.js";
 import { DEFAULT_WELLKNOWN_URL } from "./constants.js";
 
@@ -82,30 +83,34 @@ describe("McpServerAuth", () => {
     });
   });
 
-  describe("verifyToken", () => {
-    it("should verify a valid token", async () => {
-      // We need to mock the jose module at the top level
-      const { jwtVerify } = await import("jose");
+  // Tests for private methods are removed since they are now tested through handleRequest
+
+  describe("handleRequest", () => {
+    // These tests cover the functionality of the now-private createAuthInfo and extractBearerToken methods
+    it("should extract token and verify it successfully", async () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
           client_id: "client123",
-          scope: "openid profile email",
+          scope: "openid profile",
           exp: 1234567890,
-          email: "user@example.com",
-          name: "Test User",
-          picture: "https://example.com/picture.jpg",
         },
         protectedHeader: {} as any,
       } as any);
 
       const auth = await McpServerAuth.init();
-      const authInfo = await auth.verifyToken("valid.jwt.token");
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
 
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: "client123",
-        scopes: ["openid", "profile", "email"],
+        scopes: ["openid", "profile"],
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
@@ -113,18 +118,132 @@ describe("McpServerAuth", () => {
       });
     });
 
-    it("should return null for invalid token", async () => {
-      const { jwtVerify } = await import("jose");
-      vi.mocked(jwtVerify).mockRejectedValue(new Error("Invalid token"));
-
+    it("should throw error when no authorization header and no onLogin", async () => {
       const auth = await McpServerAuth.init();
-      const authInfo = await auth.verifyToken("invalid.jwt.token");
+      const mockRequest = {
+        headers: {},
+      } as any;
 
-      expect(authInfo).toBeNull();
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow('Authentication failed');
     });
 
-    it("should handle missing scope claim", async () => {
-      const { jwtVerify } = await import("jose");
+    it("should throw error when token is invalid", async () => {
+      const error = new Error("Invalid token");
+      vi.mocked(jwtVerify).mockRejectedValue(error);
+
+      const auth = await McpServerAuth.init();
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer invalid.jwt.token",
+        },
+      } as any;
+
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(error);
+    });
+
+    it("should pass request to onLogin callback", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "client123",
+          scope: "openid",
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const onLoginCallback = vi.fn(async (authInfo, request) => {
+        return {
+          ...authInfo,
+          extra: {
+            ...authInfo.extra,
+            customData: request?.headers?.['x-custom-header'],
+          },
+        };
+      });
+
+      const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+          'x-custom-header': 'custom-value',
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(onLoginCallback).toHaveBeenCalledWith({
+        token: "valid.jwt.token",
+        clientId: "client123",
+        scopes: ["openid"],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      }, mockRequest);
+
+      expect(authInfo).toEqual({
+        token: "valid.jwt.token",
+        clientId: "client123",
+        scopes: ["openid"],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+          customData: "custom-value",
+        },
+      });
+    });
+    
+    it("should allow onLogin to handle missing token", async () => {
+      const onLoginCallback = vi.fn(async (authInfo, request) => {
+        // Create auth from API key when no bearer token
+        const apiKey = request?.headers?.['x-api-key'];
+        if (apiKey === 'valid-api-key') {
+          return {
+            token: '',
+            clientId: 'api-client',
+            scopes: ['api:access'],
+            extra: {
+              authType: 'api-key',
+              apiKey
+            }
+          };
+        }
+        return null;
+      }) as any;
+
+      const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
+      const mockRequest = {
+        headers: {
+          'x-api-key': 'valid-api-key',
+        },
+      } as any;
+
+      const result = await auth.handleRequest(mockRequest);
+
+      expect(result).toEqual({
+        token: '',
+        clientId: 'api-client',
+        scopes: ['api:access'],
+        extra: {
+          authType: 'api-key',
+          apiKey: 'valid-api-key'
+        }
+      });
+    });
+    
+    it("should throw error when onLogin returns null", async () => {
+      const onLoginCallback = vi.fn(async () => null) as any;
+
+      const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
+      const mockRequest = {
+        headers: {},
+      } as any;
+
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow('Authentication failed');
+    });
+
+    it("should handle missing scope claim in JWT", async () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
@@ -135,7 +254,13 @@ describe("McpServerAuth", () => {
       } as any);
 
       const auth = await McpServerAuth.init();
-      const authInfo = await auth.verifyToken("valid.jwt.token");
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
 
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
@@ -148,70 +273,7 @@ describe("McpServerAuth", () => {
       });
     });
 
-    it("should call onLogin callback when provided", async () => {
-      const { jwtVerify } = await import("jose");
-      vi.mocked(jwtVerify).mockResolvedValue({
-        payload: {
-          sub: "user123",
-          client_id: "client123",
-          scope: "openid profile",
-          exp: 1234567890,
-        },
-        protectedHeader: {} as any,
-      } as any);
-
-      // Mock database lookup function
-      const mockUserDb: Record<string, { email: string; name: string; role: string; organization: string }> = {
-        user123: {
-          email: "user@example.com",
-          name: "John Doe",
-          role: "admin",
-          organization: "Acme Corp",
-        },
-      };
-
-      const onLoginCallback = vi.fn(async (authInfo) => {
-        // Simulate database lookup
-        const userData = mockUserDb[authInfo.extra.sub];
-        return {
-          ...authInfo,
-          extra: {
-            ...authInfo.extra,
-            ...userData,
-          },
-        };
-      });
-
-      const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
-      const authInfo = await auth.verifyToken("valid.jwt.token");
-
-      expect(onLoginCallback).toHaveBeenCalledWith({
-        token: "valid.jwt.token",
-        clientId: "client123",
-        scopes: ["openid", "profile"],
-        expiresAt: 1234567890,
-        extra: {
-          sub: "user123",
-        },
-      });
-
-      expect(authInfo).toEqual({
-        token: "valid.jwt.token",
-        clientId: "client123",
-        scopes: ["openid", "profile"],
-        expiresAt: 1234567890,
-        extra: {
-          sub: "user123",
-          email: "user@example.com",
-          name: "John Doe",
-          role: "admin",
-          organization: "Acme Corp",
-        },
-      });
-    });
-
-    it("should handle onLogin errors gracefully", async () => {
-      const { jwtVerify } = await import("jose");
+    it("should handle onLogin callback errors", async () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
@@ -227,44 +289,24 @@ describe("McpServerAuth", () => {
       });
 
       const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
-      const authInfo = await auth.verifyToken("valid.jwt.token");
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
 
-      expect(onLoginCallback).toHaveBeenCalled();
-      expect(authInfo).toBeNull(); // Should return null on error
-    });
-  });
-
-  describe("extractBearerToken", () => {
-    it("should extract token from valid Bearer header", () => {
-      const token = McpServerAuth.extractBearerToken("Bearer abc123xyz");
-      expect(token).toBe("abc123xyz");
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow("Database connection failed");
     });
 
-    it("should return null for missing header", () => {
-      const token = McpServerAuth.extractBearerToken(undefined);
-      expect(token).toBeNull();
-    });
+    it("should handle non-Bearer authorization headers", async () => {
+      const auth = await McpServerAuth.init();
+      const mockRequest = {
+        headers: {
+          authorization: "Basic abc123xyz",
+        },
+      } as any;
 
-    it("should return null for non-Bearer header", () => {
-      const token = McpServerAuth.extractBearerToken("Basic abc123xyz");
-      expect(token).toBeNull();
-    });
-
-    it("should return null for malformed Bearer header", () => {
-      const token = McpServerAuth.extractBearerToken("Bearer");
-      expect(token).toBeNull();
-    });
-  });
-
-  describe("getOptions", () => {
-    it("should return the options passed during initialization", async () => {
-      const options = {
-        wellKnownUrl: "https://custom.auth.com/.well-known/openid-configuration",
-        scopesSupported: ["custom:scope"],
-      };
-      
-      const auth = await McpServerAuth.init(options);
-      expect(auth.getOptions()).toEqual(options);
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow('Authentication failed');
     });
   });
 });

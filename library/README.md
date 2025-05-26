@@ -111,7 +111,7 @@ app.use(await auth({
   scopesSupported: ['openid', 'profile', 'email', 'custom:scope'],
     
   // Enrich auth info with custom data from your database
-  onLogin: async (authInfo) => {
+  onLogin: async (authInfo, request) => {
     // Look up user data based on the JWT subject claim
     const userData = await db.users.findOne({ sub: authInfo.extra.sub });
     // Return enriched auth info
@@ -135,13 +135,13 @@ const mcpServerAuth = await McpServerAuth.init();
 
 // Or with custom data enrichment
 const mcpServerAuth = await McpServerAuth.init({
-  onLogin: async (authInfo) => {
+  onLogin: async (authInfo, request) => {
     const userData = await db.users.findOne({ sub: authInfo.extra.sub });
     return {
       ...authInfo,
       extra: { ...authInfo.extra, ...userData }
     };
-  }
+  },
 });
 
 // In your framework's route handler:
@@ -152,17 +152,12 @@ if (path === '/.well-known/oauth-protected-resource') {
 }
 
 // 2. Validate bearer tokens
-const token = McpServerAuth.extractBearerToken(authHeader);
-if (!token) {
-  return unauthorized('Missing bearer token');
+try {
+  const authInfo = await mcpServerAuth.handleRequest(request);
+  // User data will be in authInfo.extra
+} catch (error) {
+    return unauthorized('Authentication failed');
 }
-
-const authInfo = await mcpServerAuth.verifyToken(token);
-if (!authInfo) {
-  return unauthorized('Invalid token');
-}
-
-// User data will be in authInfo.extra
 ```
 
 ## 💻 Client Integration
