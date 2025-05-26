@@ -157,14 +157,13 @@ describe("auth middleware", () => {
         })
       );
     });
-
   });
 
   describe("configuration options", () => {
     it("should pass configuration to McpServerAuth", async () => {
       const { McpServerAuth } = await import("./McpServerAuth.js");
       const mockInit = vi.mocked(McpServerAuth.init);
-      
+
       await auth({
         issuerUrl: new URL("https://custom-server.com"),
         onLogin: vi.fn() as any,
