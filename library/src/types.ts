@@ -33,7 +33,7 @@ export interface CivicAuthOptions<TRequest extends IncomingMessage = IncomingMes
    * @param request Optional request object that may contain headers or other data
    * @returns Enriched auth info with custom data
    */
-  onLogin?: <T extends ExtendedAuthInfo>(authInfo: ExtendedAuthInfo | null, request?: TRequest) => Promise<T>;
+  onLogin?: <T extends ExtendedAuthInfo>(authInfo: ExtendedAuthInfo | null, request?: TRequest) => Promise<T | null>;
 }
 
 export interface OIDCWellKnownConfiguration {
