@@ -1,9 +1,9 @@
 export {
-	CivicAuthProvider,
-	CivicAuthProviderOptions,
+  CivicAuthProvider,
+  CivicAuthProviderOptions,
 } from "./CivicAuthProvider.js";
 export { CLIAuthProvider, CLIAuthProviderOptions } from "./CLIAuthProvider.js";
 export {
-	TokenAuthProvider,
-	TokenAuthProviderOptions,
+  TokenAuthProvider,
+  TokenAuthProviderOptions,
 } from "./TokenAuthProvider.js";

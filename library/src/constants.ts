@@ -1,4 +1,4 @@
-export const DEFAULT_WELLKNOWN_URL = 'https://auth.civic.com/oauth/.well-known/openid-configuration';
+export const DEFAULT_WELLKNOWN_URL = "https://auth.civic.com/oauth/.well-known/openid-configuration";
 
 /**
  * Default scope for OAuth authentication

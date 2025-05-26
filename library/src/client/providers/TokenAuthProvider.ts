@@ -1,22 +1,18 @@
 import type {
-	OAuthClientInformation,
-	OAuthClientInformationFull,
-	OAuthClientMetadata,
-	OAuthTokens,
+  OAuthClientInformation,
+  OAuthClientMetadata,
+  OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
-import {
-	CivicAuthProvider,
-	CivicAuthProviderOptions,
-} from "./CivicAuthProvider.js";
+import { CivicAuthProvider, type CivicAuthProviderOptions } from "./CivicAuthProvider.js";
 
 /**
  * Configuration options for TokenAuthProvider
  */
 export interface TokenAuthProviderOptions extends CivicAuthProviderOptions {
-	/**
-	 * OAuth tokens to use for authentication
-	 */
-	tokens: OAuthTokens;
+  /**
+   * OAuth tokens to use for authentication
+   */
+  tokens: OAuthTokens;
 }
 
 /**
@@ -25,51 +21,52 @@ export interface TokenAuthProviderOptions extends CivicAuthProviderOptions {
  * and want to use them directly with the MCP client.
  */
 export class TokenAuthProvider extends CivicAuthProvider {
-	/**
-	 * Create a new TokenAuthProvider
-	 * @param tokenOrOptions - Either a token string or full options object
-	 */
-	constructor(tokenOrOptions: string | TokenAuthProviderOptions) {
-		// Handle simple string constructor for convenience
-		const options: TokenAuthProviderOptions = typeof tokenOrOptions === 'string' 
-			? { tokens: { access_token: tokenOrOptions, token_type: 'Bearer' } }
-			: tokenOrOptions;
-			
-		super(options);
-		this.storedTokens = options.tokens;
-	}
+  /**
+   * Create a new TokenAuthProvider
+   * @param tokenOrOptions - Either a token string or full options object
+   */
+  constructor(tokenOrOptions: string | TokenAuthProviderOptions) {
+    // Handle simple string constructor for convenience
+    const options: TokenAuthProviderOptions =
+      typeof tokenOrOptions === "string"
+        ? { tokens: { access_token: tokenOrOptions, token_type: "Bearer" } }
+        : tokenOrOptions;
 
-	get redirectUrl(): string | URL {
-		// No redirect URL needed for token-based auth
-		return "";
-	}
+    super(options);
+    this.storedTokens = options.tokens;
+  }
 
-	get clientMetadata(): OAuthClientMetadata {
-		return {
-			redirect_uris: []
-		}
-	}
+  get redirectUrl(): string | URL {
+    // No redirect URL needed for token-based auth
+    return "";
+  }
 
-	clientInformation(): OAuthClientInformation | undefined {
-		return {
-			client_id: "token-client",
-		};
-	}
+  get clientMetadata(): OAuthClientMetadata {
+    return {
+      redirect_uris: [],
+    };
+  }
 
-	saveTokens(tokens: OAuthTokens): void {
-		this.storedTokens = tokens;
-	}
+  clientInformation(): OAuthClientInformation | undefined {
+    return {
+      client_id: "token-client",
+    };
+  }
 
-	redirectToAuthorization(authorizationUrl: URL): void {
-		// No-op - tokens are already available
-	}
+  saveTokens(tokens: OAuthTokens): void {
+    this.storedTokens = tokens;
+  }
 
-	saveCodeVerifier(codeVerifier: string): void {
-		// No-op for token-based auth
-	}
+  redirectToAuthorization(_authorizationUrl: URL): void {
+    // No-op - tokens are already available
+  }
 
-	codeVerifier(): string {
-		// Return empty string as no code verifier is needed for token-based auth
-		return "";
-	}
+  saveCodeVerifier(_codeVerifier: string): void {
+    // No-op for token-based auth
+  }
+
+  codeVerifier(): string {
+    // Return empty string as no code verifier is needed for token-based auth
+    return "";
+  }
 }
