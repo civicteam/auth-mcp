@@ -1,7 +1,10 @@
 import type { IncomingMessage } from "node:http";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
-export interface CivicAuthOptions<TRequest extends IncomingMessage = IncomingMessage> {
+export interface CivicAuthOptions<
+  TAuthInfo extends ExtendedAuthInfo,
+  TRequest extends IncomingMessage = IncomingMessage,
+> {
   /**
    * The URL to Civic's well-known OIDC configuration
    * Defaults to https://auth.civic.com/oauth/.well-known/openid-configuration
@@ -33,7 +36,7 @@ export interface CivicAuthOptions<TRequest extends IncomingMessage = IncomingMes
    * @param request Optional request object that may contain headers or other data
    * @returns Enriched auth info with custom data
    */
-  onLogin?: <T extends ExtendedAuthInfo>(authInfo: ExtendedAuthInfo | null, request?: TRequest) => Promise<T | null>;
+  onLogin?: (authInfo: ExtendedAuthInfo | null, request?: TRequest) => Promise<TAuthInfo | null>;
 }
 
 export interface OIDCWellKnownConfiguration {

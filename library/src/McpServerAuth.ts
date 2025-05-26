@@ -6,12 +6,12 @@ import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } f
 /**
  * Core authentication functionality that can be used with any framework
  */
-export class McpServerAuth<TRequest extends IncomingMessage = IncomingMessage> {
+export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage> {
   private oidcConfig: OIDCWellKnownConfiguration;
   private jwks: ReturnType<typeof createRemoteJWKSet>;
-  private options: CivicAuthOptions<TRequest>;
+  private options: CivicAuthOptions<TAuthInfo, TRequest>;
 
-  private constructor(oidcConfig: OIDCWellKnownConfiguration, options: CivicAuthOptions<TRequest> = {}) {
+  private constructor(oidcConfig: OIDCWellKnownConfiguration, options: CivicAuthOptions<TAuthInfo, TRequest>) {
     this.oidcConfig = oidcConfig;
     this.options = options;
     this.jwks = createRemoteJWKSet(new URL(oidcConfig.jwks_uri));
@@ -20,9 +20,9 @@ export class McpServerAuth<TRequest extends IncomingMessage = IncomingMessage> {
   /**
    * Initialize the auth core by fetching OIDC configuration
    */
-  static async init<TRequest extends IncomingMessage = IncomingMessage>(
-    options: CivicAuthOptions<TRequest> = {}
-  ): Promise<McpServerAuth<TRequest>> {
+  static async init<TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage>(
+    options: CivicAuthOptions<TAuthInfo, TRequest> = {}
+  ): Promise<McpServerAuth<TAuthInfo, TRequest>> {
     const wellKnownUrl = options.wellKnownUrl || DEFAULT_WELLKNOWN_URL;
     console.log(`Fetching Civic Auth OIDC configuration from ${wellKnownUrl}`);
 
@@ -61,7 +61,7 @@ export class McpServerAuth<TRequest extends IncomingMessage = IncomingMessage> {
     token: string | null,
     payload: JWTPayload | null,
     request?: TRequest
-  ): Promise<ExtendedAuthInfo | null> {
+  ): Promise<TAuthInfo | null> {
     const inputAuthInfo: ExtendedAuthInfo | null =
       token && payload
         ? {
@@ -75,7 +75,7 @@ export class McpServerAuth<TRequest extends IncomingMessage = IncomingMessage> {
           }
         : null;
 
-    if (!this.options.onLogin) return inputAuthInfo;
+    if (!this.options.onLogin) return inputAuthInfo as TAuthInfo;
 
     // Call onLogin if provided - it can create or enrich auth info
     // If authInfo is null, onLogin might create it from request headers
@@ -111,7 +111,7 @@ export class McpServerAuth<TRequest extends IncomingMessage = IncomingMessage> {
    * @returns ExtendedAuthInfo if valid
    * @throws Error if authentication fails
    */
-  async handleRequest(request: TRequest): Promise<ExtendedAuthInfo> {
+  async handleRequest(request: TRequest): Promise<TAuthInfo> {
     const { token, payload } = await this.extractBearerToken(request.headers.authorization);
 
     // Try to create auth info (even with null token/payload, onLogin might handle it)
