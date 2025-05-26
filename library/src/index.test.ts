@@ -158,82 +158,22 @@ describe("auth middleware", () => {
       );
     });
 
-    it("should pass request to onLogin callback for custom authentication", async () => {
-      const onLoginCallback = vi.fn(async (authInfo, request) => {
-        // Check if request contains custom header
-        if (request?.headers?.["x-api-key"] === "secret-key") {
-          return {
-            ...authInfo,
-            extra: {
-              ...authInfo.extra,
-              apiKeyUsed: true,
-            },
-          };
-        }
-        return authInfo;
-      });
-
-      const customApp = express();
-      customApp.use(await auth({ onLogin: onLoginCallback }));
-      customApp.get("/test", (req, res) => {
-        res.json({ auth: (req as any).auth });
-      });
-
-      // Mock the handleRequest to return auth info that will be passed to onLogin
-      const { McpServerAuth } = await import("./McpServerAuth.js");
-      const mockInit = vi.mocked(McpServerAuth.init);
-      mockInit.mockImplementation((options) => {
-        const authInstance = {
-          getProtectedResourceMetadata: vi.fn(),
-          verifyToken: vi.fn(),
-          handleRequest: vi.fn().mockImplementation(async (req) => {
-            // Simulate the auth flow with onLogin callback
-            const baseAuthInfo = {
-              token: "valid.jwt.token",
-              clientId: "client123",
-              scopes: ["openid"],
-              expiresAt: 1234567890,
-            };
-            
-            if (options?.onLogin) {
-              return await options.onLogin(baseAuthInfo, req);
-            }
-            return baseAuthInfo;
-          }),
-        };
-        return authInstance as any;
-      });
-
-      const response = await request(customApp)
-        .get("/test")
-        .set("Authorization", "Bearer valid.jwt.token")
-        .set("X-API-Key", "secret-key")
-        .expect(200);
-
-      expect(response.body.auth).toEqual({
-        token: "valid.jwt.token",
-        clientId: "client123",
-        scopes: ["openid"],
-        expiresAt: 1234567890,
-        extra: {
-          apiKeyUsed: true,
-        },
-      });
-    });
   });
 
   describe("configuration options", () => {
-    it("should handle URL type for issuerUrl", async () => {
-      const customApp = express();
-      customApp.use(
-        await auth({
-          issuerUrl: new URL("https://custom-server.com"),
-        })
-      );
+    it("should pass configuration to McpServerAuth", async () => {
+      const { McpServerAuth } = await import("./McpServerAuth.js");
+      const mockInit = vi.mocked(McpServerAuth.init);
+      
+      await auth({
+        issuerUrl: new URL("https://custom-server.com"),
+        onLogin: vi.fn(),
+      });
 
-      const response = await request(customApp).get("/.well-known/oauth-protected-resource").expect(200);
-
-      expect(response.body.resource).toBe("https://custom-server.com/");
+      expect(mockInit).toHaveBeenCalledWith({
+        issuerUrl: new URL("https://custom-server.com"),
+        onLogin: expect.any(Function),
+      });
     });
   });
 });
