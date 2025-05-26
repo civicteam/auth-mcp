@@ -167,7 +167,7 @@ describe("auth middleware", () => {
       
       await auth({
         issuerUrl: new URL("https://custom-server.com"),
-        onLogin: vi.fn(),
+        onLogin: vi.fn() as any,
       });
 
       expect(mockInit).toHaveBeenCalledWith({
