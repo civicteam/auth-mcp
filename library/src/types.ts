@@ -24,6 +24,14 @@ export interface CivicAuthOptions {
    * Defaults to '/'
    */
   basePath?: string;
+
+  /**
+   * Optional callback to enrich the auth info with custom data
+   * Called after successful token verification
+   * @param authInfo The verified auth info from the token
+   * @returns Enriched auth info with custom data
+   */
+  onLogin?: <T extends ExtendedAuthInfo>(authInfo: ExtendedAuthInfo) => Promise<T>;
 }
 
 export interface OIDCWellKnownConfiguration {

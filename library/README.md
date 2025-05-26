@@ -52,20 +52,43 @@ That's it!
 The fastest way to secure an MCP server. Works smoothly with [Anthropic's SDK](https://www.npmjs.com/package/@modelcontextprotocol/sdk).
 
 ```typescript
+import express from "express";
 import { auth } from "@civic/auth-mcp";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+// Create your Express app
+const app = express();
+
+// Add auth middleware
+app.use(await auth());
 
 // Create your MCP server
-const mcpServer = new Server({
+const mcpServer = new McpServer({
   name: "weather-mcp-server",
   version: "0.0.1",
 });
 
 // Register your tools
-mcpServer.tool(/* your tool details */);
+mcpServer.tool(
+    "tool-name",
+    "Example tool",
+    {},
+    async (_, extra) => {
+        // Access the authenticated user's information
+        const user = extra.authInfo?.extra?.sub;
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `Hello ${user}!`,
+                },
+            ],
+        };
+    }
+);
 
-// Add auth middleware
-app.use(await auth());
-
+// Set up the transport layer
 // In production you would need session management
 const transport = new StreamableHTTPServerTransport();
 
@@ -79,15 +102,24 @@ app.post("/mcp", async (req, res) => {
 ### ⚙️ Configuration Options
 
 ```typescript
-// Use a different auth server:
 app.use(await auth({
-  wellKnownUrl: 'https://accounts.google.com/.well-known/openid-configuration'
-}));
-
-// Or specify additional options
-app.use(await auth({
+  // Use a different auth server:
+  wellKnownUrl: 'https://accounts.google.com/.well-known/openid-configuration',
+    
+  // Or specify additional options
   issuerUrl: 'https://my-mcp-server.com',
-  scopesSupported: ['openid', 'profile', 'email', 'custom:scope']
+  scopesSupported: ['openid', 'profile', 'email', 'custom:scope'],
+    
+  // Enrich auth info with custom data from your database
+  onLogin: async (authInfo) => {
+    // Look up user data based on the JWT subject claim
+    const userData = await db.users.findOne({ sub: authInfo.extra.sub });
+    // Return enriched auth info
+    return {
+      ...authInfo,
+      extra: { ...authInfo.extra, ...userData }
+    };
+  }
 }));
 ```
 
@@ -100,6 +132,17 @@ import { McpServerAuth } from "@civic/auth-mcp";
 
 // Initialize the auth server
 const mcpServerAuth = await McpServerAuth.init();
+
+// Or with custom data enrichment
+const mcpServerAuth = await McpServerAuth.init({
+  onLogin: async (authInfo) => {
+    const userData = await db.users.findOne({ sub: authInfo.extra.sub });
+    return {
+      ...authInfo,
+      extra: { ...authInfo.extra, ...userData }
+    };
+  }
+});
 
 // In your framework's route handler:
 // 1. Expose the protected resource metadata
@@ -119,12 +162,17 @@ if (!authInfo) {
   return unauthorized('Invalid token');
 }
 
-// Use authInfo.clientId, authInfo.scopes, authInfo.extra.email, etc.
+// User data will be in authInfo.extra
 ```
 
 ## 💻 Client Integration
 
+This library includes a client SDK for easy integration with MCP servers, supporting various authentication methods.
+
 ### 🖥️ CLI Client
+
+The CLI client allows you to authenticate and connect to MCP servers directly from the command line.
+When authentication is required, it will automatically open a browser window for the user to complete the authentication flow.
 
 ```typescript
 import { CLIAuthProvider, RestartableStreamableHTTPClientTransport, CLIClient } from "@civic/auth-mcp/client";
@@ -154,9 +202,13 @@ await mcpClient.connect(transport);
 
 ### 🎫 Token Authentication
 
+The TokenAuthProvider simplifies connecting to MCP servers with pre-obtained JWT tokens.
+Use this if you have an app that already handles authentication, e.g. via [Civic Auth](https://civic.com).
+
 ```typescript
 import { TokenAuthProvider, RestartableStreamableHTTPClientTransport } from "@civic/auth-mcp/client";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 // Create with pre-obtained token
 const authProvider = new TokenAuthProvider("your-jwt-token");

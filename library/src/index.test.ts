@@ -9,7 +9,7 @@ let mockVerifyToken: any;
 // Mock McpServerAuth
 vi.mock("./McpServerAuth.js", () => ({
   McpServerAuth: {
-    init: vi.fn().mockImplementation(() => {
+    init: vi.fn().mockImplementation((options) => {
       mockGetProtectedResourceMetadata = vi.fn((issuerUrl) => ({
         resource: issuerUrl,
         authorization_servers: ["https://auth.civic.com"],
@@ -80,12 +80,10 @@ describe("auth middleware", () => {
       const mockAuthInfo = {
         token: "valid.jwt.token",
         clientId: "client123",
-        scopes: ["openid", "profile", "email"],
+        scopes: ["openid", "profile"],
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
-          email: "user@example.com",
-          name: "Test User",
         },
       };
 
@@ -96,6 +94,7 @@ describe("auth middleware", () => {
         .set("Authorization", "Bearer valid.jwt.token")
         .expect(200);
 
+      expect(mockVerifyToken).toHaveBeenCalledWith("valid.jwt.token");
       expect(response.body.auth).toEqual(mockAuthInfo);
     });
 
@@ -130,6 +129,7 @@ describe("auth middleware", () => {
         .set("Authorization", "Bearer invalid.jwt.token")
         .expect(401);
 
+      expect(mockVerifyToken).toHaveBeenCalledWith("invalid.jwt.token");
       expect(response.body).toEqual({
         error: "invalid_token",
         error_description: "Token validation failed",
