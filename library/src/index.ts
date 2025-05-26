@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { Request, RequestHandler } from "express";
 import { McpServerAuth } from "./McpServerAuth.js";
-import type { CivicAuthOptions } from "./types.js";
+import type { CivicAuthOptions, ExtendedAuthInfo } from "./types.js";
 
 export * from "./types.js";
 export * from "./constants.js";
@@ -20,11 +20,13 @@ export { McpServerAuth } from "./McpServerAuth.js";
  * @param options Configuration options
  * @returns Express middleware
  */
-export async function auth(options: CivicAuthOptions<Request> = {}): Promise<RequestHandler> {
+export async function auth<TAuthInfo extends ExtendedAuthInfo>(
+  options: CivicAuthOptions<TAuthInfo, Request> = {}
+): Promise<RequestHandler> {
   console.log(`Civic Auth MCP middleware initialized with options: ${JSON.stringify(options)}`);
 
   // Initialize the core auth functionality
-  const mcpServerAuth = await McpServerAuth.init<Request>(options);
+  const mcpServerAuth = await McpServerAuth.init<TAuthInfo, Request>(options);
 
   // Create router
   const router = Router();
