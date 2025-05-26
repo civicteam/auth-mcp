@@ -1,4 +1,4 @@
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import crypto from "node:crypto";
 import http from "node:http";
 import url from "node:url";
@@ -12,8 +12,6 @@ import type {
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 import { DEFAULT_CALLBACK_PORT, DEFAULT_SCOPE } from "../../constants.js";
 import { CivicAuthProvider, type CivicAuthProviderOptions } from "./CivicAuthProvider.js";
-
-const execAsync = promisify(exec);
 
 export interface CLIAuthProviderOptions extends CivicAuthProviderOptions {
   clientId: string;
@@ -195,22 +193,20 @@ export class CLIAuthProvider extends CivicAuthProvider {
   }
 
   private async openInBrowser(url: string): Promise<void> {
-    let command: string;
-
-    switch (process.platform) {
-      case "darwin":
-        command = `open "${url}"`;
-        break;
-      case "win32":
-        command = `start "${url}"`;
-        break;
-      default:
-        // Linux/Unix
-        command = `xdg-open "${url}"`;
-    }
+    const execFileAsync = promisify(execFile);
 
     try {
-      await execAsync(command);
+      switch (process.platform) {
+        case "darwin":
+          await execFileAsync("open", [url]);
+          break;
+        case "win32":
+          await execFileAsync("cmd", ["/c", "start", url]);
+          break;
+        default:
+          // Linux/Unix
+          await execFileAsync("xdg-open", [url]);
+      }
     } catch (error) {
       console.error("Failed to open browser:", error);
       console.log("Please open this URL manually:", url);

@@ -1,11 +1,18 @@
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import http from "node:http";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CLIAuthProvider } from "./CLIAuthProvider.js";
 
 // Mock node modules
 vi.mock("node:child_process", () => ({
-  exec: vi.fn((_cmd, callback) => callback(null, "", "")),
+  execFile: vi.fn((_cmd, _args, callback) => {
+    if (typeof _args === "function") {
+      // Handle promisify case
+      _args(null, "", "");
+    } else if (callback) {
+      callback(null, "", "");
+    }
+  }),
 }));
 
 // Mock http server
@@ -131,26 +138,29 @@ describe("CLIAuthProvider", () => {
       expect(mockServerInstance.listen).toHaveBeenCalledWith(8080, expect.any(Function));
 
       // Verify browser was opened
-      expect(exec).toHaveBeenCalledWith(expect.stringContaining(authUrl.href), expect.any(Function));
+      expect(execFile).toHaveBeenCalled();
     });
 
     it("should handle different platforms for opening browser", async () => {
       const authUrl = new URL("https://auth.example.com/authorize");
 
       // Test macOS
+      vi.clearAllMocks();
       Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
       await provider.redirectToAuthorization(authUrl);
-      expect(exec).toHaveBeenCalledWith(expect.stringContaining("open"), expect.any(Function));
+      expect(execFile).toHaveBeenCalledWith("open", [authUrl.href], expect.any(Function));
 
       // Test Windows
+      vi.clearAllMocks();
       Object.defineProperty(process, "platform", { value: "win32", configurable: true });
       await provider.redirectToAuthorization(authUrl);
-      expect(exec).toHaveBeenCalledWith(expect.stringContaining("start"), expect.any(Function));
+      expect(execFile).toHaveBeenCalledWith("cmd", ["/c", "start", authUrl.href], expect.any(Function));
 
       // Test Linux
+      vi.clearAllMocks();
       Object.defineProperty(process, "platform", { value: "linux", configurable: true });
       await provider.redirectToAuthorization(authUrl);
-      expect(exec).toHaveBeenCalledWith(expect.stringContaining("xdg-open"), expect.any(Function));
+      expect(execFile).toHaveBeenCalledWith("xdg-open", [authUrl.href], expect.any(Function));
     });
   });
 
