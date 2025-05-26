@@ -10,6 +10,7 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
+import escapeHtml from "escape-html";
 import { DEFAULT_CALLBACK_PORT, DEFAULT_SCOPE } from "../../constants.js";
 import { CivicAuthProvider, type CivicAuthProviderOptions } from "./CivicAuthProvider.js";
 
@@ -129,7 +130,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
           if (error) {
             res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(`<html><body><h1>Authorization Failed</h1><p>${error}</p></body></html>`);
+            res.end(`<html lang="en"><body><h1>Authorization Failed</h1><p>${escapeHtml(error)}</p></body></html>`);
 
             if (this.authorizationCodeReject) {
               this.authorizationCodeReject(new Error(`OAuth error: ${error}`));
@@ -138,7 +139,9 @@ export class CLIAuthProvider extends CivicAuthProvider {
             this.stopCallbackServer();
           } else if (code) {
             res.writeHead(200, { "Content-Type": "text/html" });
-            res.end("<html><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>");
+            res.end(
+              '<html lang="en"><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>'
+            );
 
             // Call finishAuth on the transport if set. This triggers the token exchange
             if (this.transport) {
