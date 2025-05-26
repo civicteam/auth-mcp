@@ -5,7 +5,9 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "lint": "biome check --write .",
+    "lint:check": "biome check ."
   },
   "keywords": ["mcp", "auth", "cli", "example"],
   "author": "",

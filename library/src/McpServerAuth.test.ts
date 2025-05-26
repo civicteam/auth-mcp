@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { jwtVerify } from "jose";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { McpServerAuth } from "./McpServerAuth.js";
 import { DEFAULT_WELLKNOWN_URL } from "./constants.js";
 
@@ -52,9 +52,7 @@ describe("McpServerAuth", () => {
         statusText: "Not Found",
       });
 
-      await expect(McpServerAuth.init()).rejects.toThrow(
-        "Failed to fetch Civic Auth configuration: Not Found"
-      );
+      await expect(McpServerAuth.init()).rejects.toThrow("Failed to fetch Civic Auth configuration: Not Found");
     });
   });
 
@@ -124,7 +122,7 @@ describe("McpServerAuth", () => {
         headers: {},
       } as any;
 
-      await expect(auth.handleRequest(mockRequest)).rejects.toThrow('Authentication failed');
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow("Authentication failed");
     });
 
     it("should throw error when token is invalid", async () => {
@@ -157,7 +155,7 @@ describe("McpServerAuth", () => {
           ...authInfo,
           extra: {
             ...authInfo.extra,
-            customData: request?.headers?.['x-custom-header'],
+            customData: request?.headers?.["x-custom-header"],
           },
         };
       });
@@ -166,21 +164,24 @@ describe("McpServerAuth", () => {
       const mockRequest = {
         headers: {
           authorization: "Bearer valid.jwt.token",
-          'x-custom-header': 'custom-value',
+          "x-custom-header": "custom-value",
         },
       } as any;
 
       const authInfo = await auth.handleRequest(mockRequest);
 
-      expect(onLoginCallback).toHaveBeenCalledWith({
-        token: "valid.jwt.token",
-        clientId: "client123",
-        scopes: ["openid"],
-        expiresAt: 1234567890,
-        extra: {
-          sub: "user123",
+      expect(onLoginCallback).toHaveBeenCalledWith(
+        {
+          token: "valid.jwt.token",
+          clientId: "client123",
+          scopes: ["openid"],
+          expiresAt: 1234567890,
+          extra: {
+            sub: "user123",
+          },
         },
-      }, mockRequest);
+        mockRequest
+      );
 
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
@@ -193,20 +194,20 @@ describe("McpServerAuth", () => {
         },
       });
     });
-    
+
     it("should allow onLogin to handle missing token", async () => {
-      const onLoginCallback = vi.fn(async (authInfo, request) => {
+      const onLoginCallback = vi.fn(async (_authInfo, request) => {
         // Create auth from API key when no bearer token
-        const apiKey = request?.headers?.['x-api-key'];
-        if (apiKey === 'valid-api-key') {
+        const apiKey = request?.headers?.["x-api-key"];
+        if (apiKey === "valid-api-key") {
           return {
-            token: '',
-            clientId: 'api-client',
-            scopes: ['api:access'],
+            token: "",
+            clientId: "api-client",
+            scopes: ["api:access"],
             extra: {
-              authType: 'api-key',
-              apiKey
-            }
+              authType: "api-key",
+              apiKey,
+            },
           };
         }
         return null;
@@ -215,23 +216,23 @@ describe("McpServerAuth", () => {
       const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
       const mockRequest = {
         headers: {
-          'x-api-key': 'valid-api-key',
+          "x-api-key": "valid-api-key",
         },
       } as any;
 
       const result = await auth.handleRequest(mockRequest);
 
       expect(result).toEqual({
-        token: '',
-        clientId: 'api-client',
-        scopes: ['api:access'],
+        token: "",
+        clientId: "api-client",
+        scopes: ["api:access"],
         extra: {
-          authType: 'api-key',
-          apiKey: 'valid-api-key'
-        }
+          authType: "api-key",
+          apiKey: "valid-api-key",
+        },
       });
     });
-    
+
     it("should throw error when onLogin returns null", async () => {
       const onLoginCallback = vi.fn(async () => null) as any;
 
@@ -240,7 +241,7 @@ describe("McpServerAuth", () => {
         headers: {},
       } as any;
 
-      await expect(auth.handleRequest(mockRequest)).rejects.toThrow('Authentication failed');
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow("Authentication failed");
     });
 
     it("should handle missing scope claim in JWT", async () => {
@@ -306,7 +307,7 @@ describe("McpServerAuth", () => {
         },
       } as any;
 
-      await expect(auth.handleRequest(mockRequest)).rejects.toThrow('Authentication failed');
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow("Authentication failed");
     });
   });
 });

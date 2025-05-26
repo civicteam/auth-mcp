@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import express from "express";
 import request from "supertest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth } from "./index.js";
 
 let mockGetProtectedResourceMetadata: any;
@@ -10,18 +10,18 @@ let mockHandleRequest: any;
 // Mock McpServerAuth
 vi.mock("./McpServerAuth.js", () => ({
   McpServerAuth: {
-    init: vi.fn().mockImplementation((options) => {
+    init: vi.fn().mockImplementation((_options) => {
       mockGetProtectedResourceMetadata = vi.fn((issuerUrl) => ({
         resource: issuerUrl,
         authorization_servers: ["https://auth.civic.com"],
         scopes_supported: ["openid", "profile", "email"],
         bearer_methods_supported: ["header"],
         resource_documentation: "https://docs.civic.com",
-      resource_policy_uri: "https://www.civic.com/privacy-policy",
+        resource_policy_uri: "https://www.civic.com/privacy-policy",
       }));
       mockVerifyToken = vi.fn();
       mockHandleRequest = vi.fn();
-      
+
       return {
         getProtectedResourceMetadata: mockGetProtectedResourceMetadata,
         verifyToken: mockVerifyToken,
@@ -37,10 +37,10 @@ describe("auth middleware", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     app = express();
-    
+
     // Apply the auth middleware
     app.use(await auth());
-    
+
     // Add a test endpoint
     app.get("/test", (req, res) => {
       res.json({ auth: (req as any).auth });
@@ -49,9 +49,7 @@ describe("auth middleware", () => {
 
   describe("/.well-known/oauth-protected-resource", () => {
     it("should expose protected resource metadata", async () => {
-      const response = await request(app)
-        .get("/.well-known/oauth-protected-resource")
-        .expect(200);
+      const response = await request(app).get("/.well-known/oauth-protected-resource").expect(200);
 
       // The resource URL will include the port from supertest
       expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
@@ -65,10 +63,8 @@ describe("auth middleware", () => {
     it("should use custom issuerUrl if provided", async () => {
       const customApp = express();
       customApp.use(await auth({ issuerUrl: "https://custom-server.com" }));
-      
-      const response = await request(customApp)
-        .get("/.well-known/oauth-protected-resource")
-        .expect(200);
+
+      const response = await request(customApp).get("/.well-known/oauth-protected-resource").expect(200);
 
       expect(response.body.resource).toBe("https://custom-server.com");
     });
@@ -88,10 +84,7 @@ describe("auth middleware", () => {
 
       mockHandleRequest.mockResolvedValue(mockAuthInfo);
 
-      const response = await request(app)
-        .get("/test")
-        .set("Authorization", "Bearer valid.jwt.token")
-        .expect(200);
+      const response = await request(app).get("/test").set("Authorization", "Bearer valid.jwt.token").expect(200);
 
       expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
       expect(response.body.auth).toEqual(mockAuthInfo);
@@ -100,9 +93,7 @@ describe("auth middleware", () => {
     it("should reject requests without authorization header", async () => {
       mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
 
-      const response = await request(app)
-        .get("/test")
-        .expect(401);
+      const response = await request(app).get("/test").expect(401);
 
       expect(response.body).toEqual({
         error: "unauthorized",
@@ -113,10 +104,7 @@ describe("auth middleware", () => {
     it("should reject requests with invalid authorization header", async () => {
       mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
 
-      const response = await request(app)
-        .get("/test")
-        .set("Authorization", "Basic invalid")
-        .expect(401);
+      const response = await request(app).get("/test").set("Authorization", "Basic invalid").expect(401);
 
       expect(response.body).toEqual({
         error: "unauthorized",
@@ -127,10 +115,7 @@ describe("auth middleware", () => {
     it("should reject requests with invalid tokens", async () => {
       mockHandleRequest.mockRejectedValue(new Error("Token validation failed"));
 
-      const response = await request(app)
-        .get("/test")
-        .set("Authorization", "Bearer invalid.jwt.token")
-        .expect(401);
+      const response = await request(app).get("/test").set("Authorization", "Bearer invalid.jwt.token").expect(401);
 
       expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
       expect(response.body).toEqual({
@@ -140,9 +125,7 @@ describe("auth middleware", () => {
     });
 
     it("should skip auth for metadata endpoint", async () => {
-      const response = await request(app)
-        .get("/.well-known/oauth-protected-resource")
-        .expect(200);
+      const _response = await request(app).get("/.well-known/oauth-protected-resource").expect(200);
 
       // Should not call handleRequest for metadata endpoint
       expect(mockHandleRequest).not.toHaveBeenCalled();
@@ -152,13 +135,13 @@ describe("auth middleware", () => {
   describe("configuration options", () => {
     it("should handle URL type for issuerUrl", async () => {
       const customApp = express();
-      customApp.use(await auth({ 
-        issuerUrl: new URL("https://custom-server.com") 
-      }));
-      
-      const response = await request(customApp)
-        .get("/.well-known/oauth-protected-resource")
-        .expect(200);
+      customApp.use(
+        await auth({
+          issuerUrl: new URL("https://custom-server.com"),
+        })
+      );
+
+      const response = await request(customApp).get("/.well-known/oauth-protected-resource").expect(200);
 
       expect(response.body.resource).toBe("https://custom-server.com/");
     });

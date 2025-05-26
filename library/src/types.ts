@@ -1,5 +1,5 @@
+import type { IncomingMessage } from "node:http";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import {IncomingMessage} from "node:http";
 
 export interface CivicAuthOptions<TRequest extends IncomingMessage = IncomingMessage> {
   /**
