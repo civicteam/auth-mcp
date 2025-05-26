@@ -109,9 +109,6 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
-          email: "user@example.com",
-          name: "Test User",
-          picture: "https://example.com/picture.jpg",
         },
       });
     });
@@ -147,11 +144,93 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
-          email: undefined,
-          name: undefined,
-          picture: undefined,
         },
       });
+    });
+
+    it("should call onLogin callback when provided", async () => {
+      const { jwtVerify } = await import("jose");
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "client123",
+          scope: "openid profile",
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      // Mock database lookup function
+      const mockUserDb: Record<string, { email: string; name: string; role: string; organization: string }> = {
+        user123: {
+          email: "user@example.com",
+          name: "John Doe",
+          role: "admin",
+          organization: "Acme Corp",
+        },
+      };
+
+      const onLoginCallback = vi.fn(async (authInfo) => {
+        // Simulate database lookup
+        const userData = mockUserDb[authInfo.extra.sub];
+        return {
+          ...authInfo,
+          extra: {
+            ...authInfo.extra,
+            ...userData,
+          },
+        };
+      });
+
+      const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
+      const authInfo = await auth.verifyToken("valid.jwt.token");
+
+      expect(onLoginCallback).toHaveBeenCalledWith({
+        token: "valid.jwt.token",
+        clientId: "client123",
+        scopes: ["openid", "profile"],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      });
+
+      expect(authInfo).toEqual({
+        token: "valid.jwt.token",
+        clientId: "client123",
+        scopes: ["openid", "profile"],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+          email: "user@example.com",
+          name: "John Doe",
+          role: "admin",
+          organization: "Acme Corp",
+        },
+      });
+    });
+
+    it("should handle onLogin errors gracefully", async () => {
+      const { jwtVerify } = await import("jose");
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "client123",
+          scope: "openid",
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const onLoginCallback = vi.fn(async () => {
+        throw new Error("Database connection failed");
+      });
+
+      const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
+      const authInfo = await auth.verifyToken("valid.jwt.token");
+
+      expect(onLoginCallback).toHaveBeenCalled();
+      expect(authInfo).toBeNull(); // Should return null on error
     });
   });
 

@@ -62,18 +62,20 @@ export class McpServerAuth {
       });
 
       // Build auth info
-      const authInfo: ExtendedAuthInfo = {
+      let authInfo: ExtendedAuthInfo = {
         token,
         clientId: (payload.client_id as string) || (payload.aud as string),
         scopes: payload.scope ? (payload.scope as string).split(' ') : [],
         expiresAt: payload.exp,
         extra: {
           sub: payload.sub as string,
-          email: payload.email as string,
-          name: payload.name as string,
-          picture: payload.picture as string,
         }
       };
+
+      // Call onLogin if provided to enrich auth info
+      if (this.options.onLogin) {
+        authInfo = await this.options.onLogin(authInfo);
+      }
 
       return authInfo;
     } catch (error) {
