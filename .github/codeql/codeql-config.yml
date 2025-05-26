@@ -1,0 +1,12 @@
+name: "CodeQL config"
+
+# Exclude test files from analysis
+paths-ignore:
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - '**/test/**'
+  - '**/tests/**'
+  - '**/__tests__/**'
+  - '**/examples/**'

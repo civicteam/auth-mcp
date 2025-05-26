@@ -126,7 +126,7 @@ describe("RestartableStreamableHTTPClientTransport", () => {
       // Since our class extends StreamableHTTPClientTransport which is mocked,
       // we need to test that the transport stores the auth provider
       // The getter is defined on our class, so it should work
-      expect(transport._cliAuthProvider).toBe(mockAuthProvider);
+      expect(transport.authProvider).toBe(mockAuthProvider);
     });
   });
 });
