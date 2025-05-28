@@ -36,7 +36,6 @@ export class CLIClient extends Client {
       }
 
       // Re-throw any other errors
-      console.log("Re-throwing error:", error);
       throw error;
     }
   }

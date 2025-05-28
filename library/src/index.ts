@@ -56,7 +56,6 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
       // Express allows extending the Request interface through declaration merging
       // @ts-expect-error - Adding auth property to request
       req.auth = authInfo;
-      console.log("Got auth info:", authInfo);
 
       next();
     } catch (error) {
