@@ -67,7 +67,7 @@ app.use(await auth());
 // Create your MCP server
 async function getServer() {
     const server = new McpServer({
-        name: "weather-mcp-server",
+        name: "my-mcp-server",
         version: "0.0.1",
     });
 
