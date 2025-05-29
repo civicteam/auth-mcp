@@ -122,6 +122,9 @@ app.use(await auth({
   // Or specify additional options
   issuerUrl: 'https://my-mcp-server.com',
   scopesSupported: ['openid', 'profile', 'email', 'custom:scope'],
+  
+  // Protect a different route (defaults to '/mcp')
+  mcpRoute: '/api',
     
   // Enrich auth info with custom data from your database
   onLogin: async (authInfo, request) => {
