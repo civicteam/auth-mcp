@@ -24,6 +24,7 @@ It works with any compliant OAuth2/OIDC provider, while being optimized for Civi
 
 ## 📦 Features
 
+- Compliant with the latest version of the Model Context Protocol (MCP) specification, particularly regarding [Authorization Server discovers](https://modelcontextprotocol.io/specification/draft/basic/authorization#2-3-authorization-server-discovery) spec
 - Client and server SDKs for easy integration
 - Express middleware for quick setup
 - Framework-agnostic core for use with any nodejs framework
@@ -53,9 +54,9 @@ The fastest way to secure an MCP server. Works smoothly with [Anthropic's SDK](h
 
 ```typescript
 import express from "express";
-import { auth } from "@civic/auth-mcp";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {auth} from "@civic/auth-mcp";
+import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 
 // Create your Express app
 const app = express();
@@ -64,38 +65,50 @@ const app = express();
 app.use(await auth());
 
 // Create your MCP server
-const mcpServer = new McpServer({
-  name: "weather-mcp-server",
-  version: "0.0.1",
-});
+async function getServer() {
+    const server = new McpServer({
+        name: "weather-mcp-server",
+        version: "0.0.1",
+    });
 
-// Register your tools
-mcpServer.tool(
-    "tool-name",
-    "Example tool",
-    {},
-    async (_, extra) => {
-        // Access the authenticated user's information
-        const user = extra.authInfo?.extra?.sub;
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Hello ${user}!`,
-                },
-            ],
-        };
-    }
-);
+    // Register your tools
+    server.tool(
+        "tool-name",
+        "Example tool",
+        {},
+        async (_, extra) => {
+            // Access the authenticated user's information
+            const user = extra.authInfo?.extra?.sub;
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Hello ${user}!`,
+                    },
+                ],
+            };
+        }
+    );
 
-// Set up the transport layer
-// In production you would need session management
-const transport = new StreamableHTTPServerTransport();
+    // Set up the transport layer
+    // In production you may need session management
+    const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+    });
+
+    await server.connect(transport);
+
+    return { transport, server };
+}
 
 // Set up MCP endpoint
 app.post("/mcp", async (req, res) => {
-  await mcpServer.connect(transport);
-  await transport.handleRequest(req, res, req.body);
+    const { transport, server } = await getServer();
+    await transport.handleRequest(req, res, req.body);
+    res.on('close', () => {
+        transport.close();
+        server.close()
+    })
 });
 ```
 
