@@ -4,6 +4,8 @@ import * as dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 
+const MCP_SERVER_URL = process.env.MCP_SERVER_URL ?? "http://localhost:33007/mcp";
+
 async function main() {
   // Check for required environment variables
   if (!process.env.OAUTH_CLIENT_ID) {
@@ -17,7 +19,7 @@ async function main() {
   });
 
   // Create the transport with auth provider
-  const serverUrl = new URL("http://localhost:33007/mcp");
+  const serverUrl = new URL(MCP_SERVER_URL);
   const transport = new RestartableStreamableHTTPClientTransport(serverUrl, { authProvider });
 
   // Create and connect client with built-in auth handling

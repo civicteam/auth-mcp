@@ -41,8 +41,11 @@ describe("auth middleware", () => {
     // Apply the auth middleware
     app.use(await auth());
 
-    // Add a test endpoint
+    // Add test endpoints
     app.get("/test", (req, res) => {
+      res.json({ auth: (req as any).auth });
+    });
+    app.get("/mcp/test", (req, res) => {
       res.json({ auth: (req as any).auth });
     });
   });
@@ -84,7 +87,7 @@ describe("auth middleware", () => {
 
       mockHandleRequest.mockResolvedValue(mockAuthInfo);
 
-      const response = await request(app).get("/test").set("Authorization", "Bearer valid.jwt.token").expect(200);
+      const response = await request(app).get("/mcp/test").set("Authorization", "Bearer valid.jwt.token").expect(200);
 
       expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
       expect(response.body.auth).toEqual(mockAuthInfo);
@@ -93,7 +96,7 @@ describe("auth middleware", () => {
     it("should reject requests without authorization header", async () => {
       mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
 
-      const response = await request(app).get("/test").expect(401);
+      const response = await request(app).get("/mcp/test").expect(401);
 
       expect(response.body).toEqual({
         error: "unauthorized",
@@ -104,7 +107,7 @@ describe("auth middleware", () => {
     it("should reject requests with invalid authorization header", async () => {
       mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
 
-      const response = await request(app).get("/test").set("Authorization", "Basic invalid").expect(401);
+      const response = await request(app).get("/mcp/test").set("Authorization", "Basic invalid").expect(401);
 
       expect(response.body).toEqual({
         error: "unauthorized",
@@ -115,7 +118,7 @@ describe("auth middleware", () => {
     it("should reject requests with invalid tokens", async () => {
       mockHandleRequest.mockRejectedValue(new Error("Token validation failed"));
 
-      const response = await request(app).get("/test").set("Authorization", "Bearer invalid.jwt.token").expect(401);
+      const response = await request(app).get("/mcp/test").set("Authorization", "Bearer invalid.jwt.token").expect(401);
 
       expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
       expect(response.body).toEqual({
@@ -125,10 +128,18 @@ describe("auth middleware", () => {
     });
 
     it("should skip auth for metadata endpoint", async () => {
-      const _response = await request(app).get("/.well-known/oauth-protected-resource").expect(200);
+      await request(app).get("/.well-known/oauth-protected-resource").expect(200);
 
       // Should not call handleRequest for metadata endpoint
       expect(mockHandleRequest).not.toHaveBeenCalled();
+    });
+
+    it("should allow non-MCP routes without authentication", async () => {
+      const response = await request(app).get("/test").expect(200);
+
+      // Should not call handleRequest for non-MCP routes
+      expect(mockHandleRequest).not.toHaveBeenCalled();
+      expect(response.body.auth).toBeUndefined();
     });
 
     it("should pass the full request object to handleRequest", async () => {
@@ -142,7 +153,7 @@ describe("auth middleware", () => {
       mockHandleRequest.mockResolvedValue(mockAuthInfo);
 
       await request(app)
-        .get("/test")
+        .get("/mcp/test")
         .set("Authorization", "Bearer valid.jwt.token")
         .set("X-Custom-Header", "custom-value")
         .expect(200);
@@ -173,6 +184,31 @@ describe("auth middleware", () => {
         issuerUrl: new URL("https://custom-server.com"),
         onLogin: expect.any(Function),
       });
+    });
+
+    it("should use custom mcpRoute when provided", async () => {
+      const customApp = express();
+      customApp.use(await auth({ mcpRoute: "/api" }));
+
+      // Add test endpoints
+      customApp.get("/api/test", (req, res) => {
+        res.json({ auth: (req as any).auth });
+      });
+      customApp.get("/mcp/test", (req, res) => {
+        res.json({ auth: (req as any).auth });
+      });
+
+      // Reset mock for this test
+      mockHandleRequest.mockClear();
+
+      // Should not protect /mcp routes when custom mcpRoute is set
+      await request(customApp).get("/mcp/test").expect(200);
+      expect(mockHandleRequest).not.toHaveBeenCalled();
+
+      // Should protect /api routes
+      mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
+      const response = await request(customApp).get("/api/test").expect(401);
+      expect(response.body.error).toBe("unauthorized");
     });
   });
 });

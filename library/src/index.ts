@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, RequestHandler } from "express";
 import { McpServerAuth } from "./McpServerAuth.js";
+import { DEFAULT_MCP_ROUTE } from "./constants";
 import type { CivicAuthOptions, ExtendedAuthInfo } from "./types.js";
 
 export * from "./types.js";
@@ -28,6 +29,8 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
   // Initialize the core auth functionality
   const mcpServerAuth = await McpServerAuth.init<TAuthInfo, Request>(options);
 
+  const mcpRoute = options.mcpRoute ?? DEFAULT_MCP_ROUTE;
+
   // Create router
   const router = Router();
 
@@ -40,11 +43,15 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
     res.json(metadata);
   });
 
-  // Token validation middleware
+  // Token validation middleware - only apply to mcpRoute
   router.use(async (req, res, next) => {
-    console.log(`Received request: ${req.method} ${req.path}`);
     // Skip auth for metadata endpoints
     if (req.path === "/.well-known/oauth-protected-resource") {
+      return next();
+    }
+
+    // Only protect routes that start with mcpRoute
+    if (!req.path.startsWith(mcpRoute)) {
       return next();
     }
 

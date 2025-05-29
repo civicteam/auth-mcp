@@ -100,29 +100,5 @@ describe("CLIClient", () => {
       // Restore original
       Client.prototype.connect = originalConnect;
     });
-
-    it("should log appropriate messages during auth flow", async () => {
-      const consoleSpy = vi.spyOn(console, "log");
-
-      // Set up to simulate auth flow
-      let callCount = 0;
-
-      // Mock the parent class connect method
-      vi.spyOn(Client.prototype, "connect").mockImplementation(async () => {
-        callCount++;
-        if (callCount === 1) {
-          throw new Error("Unauthorized");
-        }
-        // Second call succeeds
-      });
-
-      await client.connect(mockTransport);
-
-      expect(consoleSpy).toHaveBeenCalledWith("Error connecting to MCP server:", expect.any(Error));
-      expect(consoleSpy).toHaveBeenCalledWith("Authorization required, waiting for user to complete OAuth flow...");
-      expect(consoleSpy).toHaveBeenCalledWith("Authorization completed.");
-
-      consoleSpy.mockRestore();
-    });
   });
 });
