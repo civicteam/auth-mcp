@@ -30,6 +30,12 @@ export interface CivicAuthOptions<
   basePath?: string;
 
   /**
+   * The MCP route to protect with authentication
+   * Defaults to '/mcp'
+   */
+  mcpRoute?: string;
+
+  /**
    * Optional callback to enrich the auth info with custom data
    * Called after successful token verification
    * @param authInfo The verified auth info from the token. Null if no token was provided.

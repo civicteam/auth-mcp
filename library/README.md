@@ -126,7 +126,7 @@ app.use(await auth({
   // Enrich auth info with custom data from your database
   onLogin: async (authInfo, request) => {
     // Look up user data based on the JWT subject claim
-    const userData = await db.users.findOne({ sub: authInfo.extra.sub });
+    const userData = await db.users.findOne({ sub: authInfo?.extra?.sub });
     // Return enriched auth info
     return {
       ...authInfo,
@@ -149,7 +149,7 @@ const mcpServerAuth = await McpServerAuth.init();
 // Or with custom data enrichment
 const mcpServerAuth = await McpServerAuth.init({
   onLogin: async (authInfo, request) => {
-    const userData = await db.users.findOne({ sub: authInfo.extra.sub });
+    const userData = await db.users.findOne({ sub: authInfo?.extra?.sub });
     return {
       ...authInfo,
       extra: { ...authInfo.extra, ...userData }

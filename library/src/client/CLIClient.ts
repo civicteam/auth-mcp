@@ -15,7 +15,6 @@ export class CLIClient extends Client {
     try {
       await super.connect(transport);
     } catch (error: unknown) {
-      console.log("Error connecting to MCP server:", error);
       // Check if this is an authorization error
       if (error instanceof Error) {
         if (error.message === "Unauthorized") {

@@ -9,3 +9,6 @@ export const DEFAULT_SCOPE = "openid profile email";
  * Default callback port for CLI authentication flow
  */
 export const DEFAULT_CALLBACK_PORT = 8080;
+
+// Default mcpRoute to '/mcp' if not specified
+export const DEFAULT_MCP_ROUTE = "/mcp";
