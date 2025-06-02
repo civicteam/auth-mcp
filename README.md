@@ -48,4 +48,11 @@ Full documentation and usage examples are available in the [`library/`](./librar
 
 ## 📄 License
 
-MIT License
+It is provided **as-is**, without warranty of any kind, express or implied. Civic makes **no guarantees of fitness for a particular purpose or ongoing support**.
+Use of this library is governed solely by the terms of the MIT License.
+
+By using this software, you agree that Civic shall not be held liable for any damages arising from its use, performance, or integration.
+
+Note: The @civic/auth-mcp library is released as an open-source project under the **MIT License**.
+
+It is provided without warranty or support guarantees and is not part of any Civic commercial offering.
