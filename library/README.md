@@ -192,6 +192,8 @@ import { CLIAuthProvider, RestartableStreamableHTTPClientTransport, CLIClient } 
 const authProvider = new CLIAuthProvider({
   clientId: "your-client-id", // Get your client ID from auth.civic.com
   // clientSecret: "your-secret", // Optional: only for non-PKCE auth servers
+  // successHtml: "<html><body><h1>Success!</h1></body></html>", // Optional: custom success page
+  // errorHtml: "<html><body><h1>Error: {{error}}</h1></body></html>", // Optional: custom error page
 });
 
 // Create the restartable transport with auth provider
