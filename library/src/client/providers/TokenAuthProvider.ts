@@ -33,7 +33,8 @@ export class TokenAuthProvider extends CivicAuthProvider {
         : tokenOrOptions;
 
     super(options);
-    this.storedTokens = options.tokens;
+    // Save the initial tokens using the persistence strategy
+    this.tokenPersistence.saveTokens(options.tokens);
   }
 
   get redirectUrl(): string | URL {
@@ -51,10 +52,6 @@ export class TokenAuthProvider extends CivicAuthProvider {
     return {
       client_id: "token-client",
     };
-  }
-
-  saveTokens(tokens: OAuthTokens): void {
-    this.storedTokens = tokens;
   }
 
   redirectToAuthorization(_authorizationUrl: URL): void {
