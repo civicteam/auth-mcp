@@ -213,28 +213,7 @@ await mcpClient.connect(transport);
 
 ### 💾 Token Persistence
 
-By default, tokens are stored in memory and lost when the process exits. You can configure persistent token storage using different strategies:
-
-#### File-based Token Persistence
-
-Store tokens in a JSON file on disk:
-
-```typescript
-import { CLIAuthProvider, FileTokenPersistence } from "@civic/auth-mcp/client";
-import path from "path";
-import os from "os";
-
-// Create file-based token persistence
-const tokenPersistence = new FileTokenPersistence(
-  path.join(os.homedir(), '.mcp-tokens.json')
-);
-
-// Use with any auth provider
-const authProvider = new CLIAuthProvider({
-  clientId: "your-client-id",
-  tokenPersistence, // Tokens will be saved to ~/.mcp-tokens.json
-});
-```
+By default, tokens are stored in memory and lost when the process exits. You can configure persistent token storage by implementing the `TokenPersistence` interface.
 
 #### In-Memory Token Persistence (Default)
 
