@@ -211,6 +211,72 @@ const mcpClient = new CLIClient(
 await mcpClient.connect(transport);
 ```
 
+### 💾 Token Persistence
+
+By default, tokens are stored in memory and lost when the process exits. You can configure persistent token storage using different strategies:
+
+#### File-based Token Persistence
+
+Store tokens in a JSON file on disk:
+
+```typescript
+import { CLIAuthProvider, FileTokenPersistence } from "@civic/auth-mcp/client";
+import path from "path";
+import os from "os";
+
+// Create file-based token persistence
+const tokenPersistence = new FileTokenPersistence(
+  path.join(os.homedir(), '.mcp-tokens.json')
+);
+
+// Use with any auth provider
+const authProvider = new CLIAuthProvider({
+  clientId: "your-client-id",
+  tokenPersistence, // Tokens will be saved to ~/.mcp-tokens.json
+});
+```
+
+#### In-Memory Token Persistence (Default)
+
+Tokens are stored in memory and lost when the process exits:
+
+```typescript
+import { CLIAuthProvider, InMemoryTokenPersistence } from "@civic/auth-mcp/client";
+
+const authProvider = new CLIAuthProvider({
+  clientId: "your-client-id",
+  tokenPersistence: new InMemoryTokenPersistence(), // Explicit, but this is the default
+});
+```
+
+#### Custom Token Persistence
+
+Implement your own persistence strategy by implementing the `TokenPersistence` interface:
+
+```typescript
+import { TokenPersistence } from "@civic/auth-mcp/client";
+import type { OAuthTokens } from "@modelcontextprotocol/sdk/shared/auth.js";
+
+class DatabaseTokenPersistence implements TokenPersistence {
+  async saveTokens(tokens: OAuthTokens): Promise<void> {
+    await db.tokens.upsert({ userId: this.userId }, tokens);
+  }
+
+  async loadTokens(): Promise<OAuthTokens | undefined> {
+    return await db.tokens.findOne({ userId: this.userId });
+  }
+
+  async clearTokens(): Promise<void> {
+    await db.tokens.delete({ userId: this.userId });
+  }
+}
+
+const authProvider = new CLIAuthProvider({
+  clientId: "your-client-id",
+  tokenPersistence: new DatabaseTokenPersistence(),
+});
+```
+
 ### 🎫 Token Authentication
 
 The TokenAuthProvider simplifies connecting to MCP servers with pre-obtained JWT tokens.

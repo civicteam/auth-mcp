@@ -5,11 +5,7 @@ import url from "node:url";
 import { promisify } from "node:util";
 import type { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import type { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type {
-  OAuthClientInformation,
-  OAuthClientMetadata,
-  OAuthTokens,
-} from "@modelcontextprotocol/sdk/shared/auth.js";
+import type { OAuthClientInformation, OAuthClientMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
 import escapeHtml from "escape-html";
 import { DEFAULT_CALLBACK_PORT, DEFAULT_SCOPE } from "../../constants.js";
 import { CivicAuthProvider, type CivicAuthProviderOptions } from "./CivicAuthProvider.js";
@@ -98,10 +94,6 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
   saveCodeVerifier(codeVerifier: string): void {
     this.storedCodeVerifier = codeVerifier;
-  }
-
-  saveTokens(tokens: OAuthTokens): void {
-    this.storedTokens = tokens;
   }
 
   /**

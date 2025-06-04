@@ -7,3 +7,8 @@ export {
   TokenAuthProvider,
   TokenAuthProviderOptions,
 } from "./TokenAuthProvider.js";
+export {
+  TokenPersistence,
+  InMemoryTokenPersistence,
+  FileTokenPersistence,
+} from "./persistence/index.js";

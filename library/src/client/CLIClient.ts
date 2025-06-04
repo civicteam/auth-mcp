@@ -22,7 +22,8 @@ export class CLIClient extends Client {
           const authProvider = transport.authProvider;
 
           // only wait if the tokens have not been set already
-          if (!authProvider.tokens()) {
+          const tokens = await authProvider.tokens();
+          if (!tokens) {
             // Wait for the OAuth flow to complete
             await authProvider.waitForAuthorizationCode();
             console.log("Authorization completed.");

@@ -4,6 +4,7 @@ import type {
   OAuthClientMetadata,
   OAuthTokens,
 } from "@modelcontextprotocol/sdk/shared/auth.js";
+import { InMemoryTokenPersistence, type TokenPersistence } from "./persistence/index.js";
 
 export interface CivicAuthProviderOptions {
   /**
@@ -11,6 +12,12 @@ export interface CivicAuthProviderOptions {
    * Optional - only needed for auth servers that require client authentication.
    */
   clientSecret?: string;
+
+  /**
+   * Token persistence strategy to use for storing/retrieving tokens.
+   * Defaults to in-memory persistence if not provided.
+   */
+  tokenPersistence?: TokenPersistence;
 }
 
 /**
@@ -18,10 +25,11 @@ export interface CivicAuthProviderOptions {
  */
 export abstract class CivicAuthProvider implements OAuthClientProvider {
   protected clientSecret?: string;
-  protected storedTokens: OAuthTokens | undefined;
+  protected tokenPersistence: TokenPersistence;
 
   constructor(options: CivicAuthProviderOptions) {
     this.clientSecret = options.clientSecret;
+    this.tokenPersistence = options.tokenPersistence ?? new InMemoryTokenPersistence();
   }
 
   abstract clientInformation(): OAuthClientInformation | Promise<OAuthClientInformation | undefined> | undefined;
@@ -34,13 +42,22 @@ export abstract class CivicAuthProvider implements OAuthClientProvider {
 
   abstract saveCodeVerifier(codeVerifier: string): void;
 
-  abstract saveTokens(tokens: OAuthTokens): void;
+  saveTokens(tokens: OAuthTokens): void | Promise<void> {
+    return this.tokenPersistence.saveTokens(tokens);
+  }
 
   /**
    * Returns the stored tokens
    */
-  tokens(): OAuthTokens | undefined {
-    return this.storedTokens;
+  tokens(): OAuthTokens | undefined | Promise<OAuthTokens | undefined> {
+    return this.tokenPersistence.loadTokens();
+  }
+
+  /**
+   * Clears the stored tokens
+   */
+  clearTokens(): void | Promise<void> {
+    return this.tokenPersistence.clearTokens();
   }
 
   abstract redirectToAuthorization(authorizationUrl: URL): void | Promise<void>;
