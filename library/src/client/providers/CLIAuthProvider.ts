@@ -14,6 +14,8 @@ export interface CLIAuthProviderOptions extends CivicAuthProviderOptions {
   clientId: string;
   scope?: string;
   callbackPort?: number;
+  successHtml?: string;
+  errorHtml?: string;
 }
 
 /**
@@ -25,6 +27,8 @@ export class CLIAuthProvider extends CivicAuthProvider {
   private clientId: string;
   private scope: string;
   private callbackPort: number;
+  private successHtml: string;
+  private errorHtml: string;
   private callbackServer: http.Server | undefined;
   private authorizationCodePromise: Promise<string> | undefined;
   private authorizationCodeResolve: ((code: string) => void) | undefined;
@@ -36,6 +40,8 @@ export class CLIAuthProvider extends CivicAuthProvider {
     this.clientId = options.clientId;
     this.scope = options.scope || DEFAULT_SCOPE;
     this.callbackPort = options.callbackPort || DEFAULT_CALLBACK_PORT;
+    this.successHtml = options.successHtml || '<html lang="en"><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>';
+    this.errorHtml = options.errorHtml || '<html lang="en"><body><h1>Authorization Failed</h1><p>{{error}}</p></body></html>';
   }
 
   clientInformation(): OAuthClientInformation | Promise<OAuthClientInformation | undefined> | undefined {
@@ -122,7 +128,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
           if (error) {
             res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(`<html lang="en"><body><h1>Authorization Failed</h1><p>${escapeHtml(error)}</p></body></html>`);
+            res.end(this.errorHtml.replace('{{error}}', escapeHtml(error)));
 
             if (this.authorizationCodeReject) {
               this.authorizationCodeReject(new Error(`OAuth error: ${error}`));
@@ -131,9 +137,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
             this.stopCallbackServer();
           } else if (code) {
             res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(
-              '<html lang="en"><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>'
-            );
+            res.end(this.successHtml);
 
             // Call finishAuth on the transport if set. This triggers the token exchange
             if (this.transport) {
