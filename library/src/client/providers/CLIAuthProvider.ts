@@ -40,8 +40,11 @@ export class CLIAuthProvider extends CivicAuthProvider {
     this.clientId = options.clientId;
     this.scope = options.scope || DEFAULT_SCOPE;
     this.callbackPort = options.callbackPort || DEFAULT_CALLBACK_PORT;
-    this.successHtml = options.successHtml || '<html lang="en"><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>';
-    this.errorHtml = options.errorHtml || '<html lang="en"><body><h1>Authorization Failed</h1><p>{{error}}</p></body></html>';
+    this.successHtml =
+      options.successHtml ||
+      '<html lang="en"><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>';
+    this.errorHtml =
+      options.errorHtml || '<html lang="en"><body><h1>Authorization Failed</h1><p>{{error}}</p></body></html>';
   }
 
   clientInformation(): OAuthClientInformation | Promise<OAuthClientInformation | undefined> | undefined {
@@ -128,7 +131,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
           if (error) {
             res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(this.errorHtml.replace('{{error}}', escapeHtml(error)));
+            res.end(this.errorHtml.replace("{{error}}", escapeHtml(error)));
 
             if (this.authorizationCodeReject) {
               this.authorizationCodeReject(new Error(`OAuth error: ${error}`));
