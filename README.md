@@ -55,4 +55,4 @@ By using this software, you agree that Civic shall not be held liable for any da
 
 Note: The @civic/auth-mcp library is released as an open-source project under the **MIT License**.
 
-It is provided without warranty or support guarantees and is not part of any Civic commercial offering.
+It is provided without warranty or support guarantees.
