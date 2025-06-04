@@ -67,3 +67,21 @@ export interface ExtendedAuthInfo extends AuthInfo {
     picture?: string;
   };
 }
+
+/**
+ * Custom error class for all authentication errors
+ */
+export class AuthenticationError extends Error {}
+
+/**
+ * Custom error class for JWT verification failures
+ */
+export class JWTVerificationError extends AuthenticationError {
+  constructor(
+    message: string,
+    public originalError?: Error
+  ) {
+    super(message);
+    this.name = "JWTVerificationError";
+  }
+}

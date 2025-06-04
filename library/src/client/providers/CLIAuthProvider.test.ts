@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import http from "node:http";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_SCOPES } from "../../constants.js";
 import { CLIAuthProvider } from "./CLIAuthProvider.js";
 
 // Mock node modules
@@ -34,7 +35,7 @@ describe("CLIAuthProvider", () => {
     vi.clearAllMocks();
     provider = new CLIAuthProvider({
       clientId: "test-client-id",
-      scope: "openid profile email",
+      scope: DEFAULT_SCOPES.join(" "),
       callbackPort: 8080,
     });
   });
@@ -65,7 +66,7 @@ describe("CLIAuthProvider", () => {
       expect(metadata).toEqual({
         redirect_uris: ["http://localhost:8080/callback"],
         client_name: "test-client-id",
-        scope: "openid profile email",
+        scope: DEFAULT_SCOPES.join(" "),
       });
     });
 
@@ -75,7 +76,7 @@ describe("CLIAuthProvider", () => {
       });
 
       const metadata = minimalProvider.clientMetadata;
-      expect(metadata.scope).toBe("openid profile email"); // DEFAULT_SCOPE
+      expect(metadata.scope).toBe(DEFAULT_SCOPES.join(" ")); // DEFAULT_SCOPES
       expect(metadata.redirect_uris).toEqual(["http://localhost:8080/callback"]); // DEFAULT_CALLBACK_PORT
     });
   });

@@ -1,7 +1,13 @@
 import type { IncomingMessage } from "node:http";
 import { type JWTPayload, createRemoteJWKSet, jwtVerify } from "jose";
-import { DEFAULT_WELLKNOWN_URL } from "./constants.js";
-import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } from "./types.js";
+import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL } from "./constants.js";
+import {
+  AuthenticationError,
+  type CivicAuthOptions,
+  type ExtendedAuthInfo,
+  JWTVerificationError,
+  type OIDCWellKnownConfiguration,
+} from "./types.js";
 
 /**
  * Core authentication functionality that can be used with any framework
@@ -43,7 +49,7 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
     return {
       resource: issuerUrl,
       authorization_servers: [this.oidcConfig.issuer],
-      scopes_supported: this.options.scopesSupported || ["openid", "profile", "email"],
+      scopes_supported: this.options.scopesSupported || DEFAULT_SCOPES,
       bearer_methods_supported: ["header"],
       resource_documentation: "https://docs.civic.com",
       resource_policy_uri: "https://www.civic.com/privacy-policy",
@@ -97,12 +103,20 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
 
     const token = authHeader.substring(7);
 
-    // Verify the token - this will throw if invalid
-    const { payload } = await jwtVerify(token, this.jwks, {
-      issuer: this.oidcConfig.issuer,
-    });
+    try {
+      // Verify the token - this will throw if invalid
+      const { payload } = await jwtVerify(token, this.jwks, {
+        issuer: this.oidcConfig.issuer,
+      });
 
-    return { token, payload };
+      return { token, payload };
+    } catch (error) {
+      // Wrap jose errors in our custom error class, so that we can catch them and return 401
+      throw new JWTVerificationError(
+        error instanceof Error ? error.message : "JWT verification failed",
+        error instanceof Error ? error : undefined
+      );
+    }
   }
 
   /**
@@ -117,7 +131,7 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
     // Try to create auth info (even with null token/payload, onLogin might handle it)
     const authInfo = await this.createAuthInfo(token, payload, request);
 
-    if (!authInfo) throw new Error("Authentication failed");
+    if (!authInfo) throw new AuthenticationError("Authentication failed");
 
     return authInfo;
   }

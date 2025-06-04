@@ -7,7 +7,7 @@ import type { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js
 import type { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { OAuthClientInformation, OAuthClientMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
 import escapeHtml from "escape-html";
-import { DEFAULT_CALLBACK_PORT, DEFAULT_SCOPE } from "../../constants.js";
+import { DEFAULT_CALLBACK_PORT, DEFAULT_SCOPES } from "../../constants.js";
 import { CivicAuthProvider, type CivicAuthProviderOptions } from "./CivicAuthProvider.js";
 
 export interface CLIAuthProviderOptions extends CivicAuthProviderOptions {
@@ -38,13 +38,13 @@ export class CLIAuthProvider extends CivicAuthProvider {
   constructor(options: CLIAuthProviderOptions) {
     super(options);
     this.clientId = options.clientId;
-    this.scope = options.scope || DEFAULT_SCOPE;
-    this.callbackPort = options.callbackPort || DEFAULT_CALLBACK_PORT;
+    this.scope = options.scope ?? DEFAULT_SCOPES.join(" ");
+    this.callbackPort = options.callbackPort ?? DEFAULT_CALLBACK_PORT;
     this.successHtml =
-      options.successHtml ||
+      options.successHtml ??
       '<html lang="en"><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>';
     this.errorHtml =
-      options.errorHtml || '<html lang="en"><body><h1>Authorization Failed</h1><p>{{error}}</p></body></html>';
+      options.errorHtml ?? '<html lang="en"><body><h1>Authorization Failed</h1><p>{{error}}</p></body></html>';
   }
 
   clientInformation(): OAuthClientInformation | Promise<OAuthClientInformation | undefined> | undefined {

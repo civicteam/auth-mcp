@@ -1,7 +1,8 @@
 import { jwtVerify } from "jose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { McpServerAuth } from "./McpServerAuth.js";
-import { DEFAULT_WELLKNOWN_URL } from "./constants.js";
+import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL } from "./constants.js";
+import { JWTVerificationError } from "./types.js";
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -18,7 +19,7 @@ describe("McpServerAuth", () => {
     authorization_endpoint: "https://auth.civic.com/authorize",
     token_endpoint: "https://auth.civic.com/token",
     jwks_uri: "https://auth.civic.com/jwks",
-    scopes_supported: ["openid", "profile", "email"],
+    scopes_supported: DEFAULT_SCOPES,
   };
 
   beforeEach(() => {
@@ -64,7 +65,7 @@ describe("McpServerAuth", () => {
       expect(metadata).toEqual({
         resource: "https://my-server.com",
         authorization_servers: ["https://auth.civic.com"],
-        scopes_supported: ["openid", "profile", "email"],
+        scopes_supported: DEFAULT_SCOPES,
         bearer_methods_supported: ["header"],
         resource_documentation: "https://docs.civic.com",
         resource_policy_uri: "https://www.civic.com/privacy-policy",
@@ -90,7 +91,7 @@ describe("McpServerAuth", () => {
         payload: {
           sub: "user123",
           client_id: "client123",
-          scope: "openid profile",
+          scope: DEFAULT_SCOPES.slice(0, 2).join(" "),
           exp: 1234567890,
         },
         protectedHeader: {} as any,
@@ -108,7 +109,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: "client123",
-        scopes: ["openid", "profile"],
+        scopes: DEFAULT_SCOPES.slice(0, 2),
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
@@ -125,9 +126,9 @@ describe("McpServerAuth", () => {
       await expect(auth.handleRequest(mockRequest)).rejects.toThrow("Authentication failed");
     });
 
-    it("should throw error when token is invalid", async () => {
-      const error = new Error("Invalid token");
-      vi.mocked(jwtVerify).mockRejectedValue(error);
+    it("should throw JWTVerificationError when token is invalid", async () => {
+      const originalError = new Error('"exp" claim timestamp check failed');
+      vi.mocked(jwtVerify).mockRejectedValue(originalError);
 
       const auth = await McpServerAuth.init();
       const mockRequest = {
@@ -136,7 +137,11 @@ describe("McpServerAuth", () => {
         },
       } as any;
 
-      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(error);
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(JWTVerificationError);
+      await expect(auth.handleRequest(mockRequest)).rejects.toMatchObject({
+        message: '"exp" claim timestamp check failed',
+        originalError,
+      });
     });
 
     it("should pass request to onLogin callback", async () => {
@@ -144,7 +149,7 @@ describe("McpServerAuth", () => {
         payload: {
           sub: "user123",
           client_id: "client123",
-          scope: "openid",
+          scope: DEFAULT_SCOPES[0],
           exp: 1234567890,
         },
         protectedHeader: {} as any,
@@ -174,7 +179,7 @@ describe("McpServerAuth", () => {
         {
           token: "valid.jwt.token",
           clientId: "client123",
-          scopes: ["openid"],
+          scopes: [DEFAULT_SCOPES[0]],
           expiresAt: 1234567890,
           extra: {
             sub: "user123",
@@ -186,7 +191,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: "client123",
-        scopes: ["openid"],
+        scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
@@ -279,7 +284,7 @@ describe("McpServerAuth", () => {
         payload: {
           sub: "user123",
           client_id: "client123",
-          scope: "openid",
+          scope: DEFAULT_SCOPES[0],
           exp: 1234567890,
         },
         protectedHeader: {} as any,
