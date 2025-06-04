@@ -15,7 +15,6 @@ async function main() {
   // Create the auth provider
   const authProvider = new CLIAuthProvider({
     clientId: process.env.OAUTH_CLIENT_ID,
-    useIDToken: true,
   });
 
   // Create the transport with auth provider
@@ -29,6 +28,9 @@ async function main() {
   // Connect to the server - this will trigger auth if needed
   await mcpClient.connect(transport);
   console.log("Connected.");
+
+  const tools = await mcpClient.listTools();
+  console.log("Available tools:", tools);
 
   const result = await mcpClient.callTool({
     name: "whoami",
