@@ -1,7 +1,9 @@
 import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { auth } from "./index.js";
+import { DEFAULT_SCOPES } from "./constants.js";
+import { McpServerAuth, auth } from "./index.js";
+import { AuthenticationError, JWTVerificationError } from "./types.js";
 
 let mockGetProtectedResourceMetadata: any;
 let mockVerifyToken: any;
@@ -14,7 +16,7 @@ vi.mock("./McpServerAuth.js", () => ({
       mockGetProtectedResourceMetadata = vi.fn((issuerUrl) => ({
         resource: issuerUrl,
         authorization_servers: ["https://auth.civic.com"],
-        scopes_supported: ["openid", "profile", "email"],
+        scopes_supported: ["openid", "profile", "email", "offline-access"],
         bearer_methods_supported: ["header"],
         resource_documentation: "https://docs.civic.com",
         resource_policy_uri: "https://www.civic.com/privacy-policy",
@@ -57,7 +59,7 @@ describe("auth middleware", () => {
       // The resource URL will include the port from supertest
       expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
       expect(response.body.authorization_servers).toEqual(["https://auth.civic.com"]);
-      expect(response.body.scopes_supported).toEqual(["openid", "profile", "email"]);
+      expect(response.body.scopes_supported).toEqual(DEFAULT_SCOPES);
       expect(response.body.bearer_methods_supported).toEqual(["header"]);
       expect(response.body.resource_documentation).toBe("https://docs.civic.com");
       expect(response.body.resource_policy_uri).toBe("https://www.civic.com/privacy-policy");
@@ -78,7 +80,7 @@ describe("auth middleware", () => {
       const mockAuthInfo = {
         token: "valid.jwt.token",
         clientId: "client123",
-        scopes: ["openid", "profile"],
+        scopes: DEFAULT_SCOPES.slice(0, 2),
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
@@ -94,35 +96,35 @@ describe("auth middleware", () => {
     });
 
     it("should reject requests without authorization header", async () => {
-      mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
+      mockHandleRequest.mockRejectedValue(new AuthenticationError("Authentication failed"));
 
       const response = await request(app).get("/mcp/test").expect(401);
 
       expect(response.body).toEqual({
-        error: "unauthorized",
+        error: "authentication_error",
         error_description: "Authentication failed",
       });
     });
 
     it("should reject requests with invalid authorization header", async () => {
-      mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
+      mockHandleRequest.mockRejectedValue(new AuthenticationError("Authentication failed"));
 
       const response = await request(app).get("/mcp/test").set("Authorization", "Basic invalid").expect(401);
 
       expect(response.body).toEqual({
-        error: "unauthorized",
+        error: "authentication_error",
         error_description: "Authentication failed",
       });
     });
 
     it("should reject requests with invalid tokens", async () => {
-      mockHandleRequest.mockRejectedValue(new Error("Token validation failed"));
+      mockHandleRequest.mockRejectedValue(new AuthenticationError("Token validation failed"));
 
       const response = await request(app).get("/mcp/test").set("Authorization", "Bearer invalid.jwt.token").expect(401);
 
       expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
       expect(response.body).toEqual({
-        error: "invalid_token",
+        error: "authentication_error",
         error_description: "Token validation failed",
       });
     });
@@ -168,11 +170,23 @@ describe("auth middleware", () => {
         })
       );
     });
+
+    it("should return 401 for expired JWT tokens", async () => {
+      // Mock handleRequest to throw a JWTVerificationError (like what happens with expired tokens)
+      mockHandleRequest.mockRejectedValue(new JWTVerificationError('"exp" claim timestamp check failed'));
+
+      const response = await request(app).get("/mcp/test").set("Authorization", "Bearer expired.jwt.token").expect(401);
+
+      expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
+      expect(response.body).toEqual({
+        error: "authentication_error",
+        error_description: '"exp" claim timestamp check failed',
+      });
+    });
   });
 
   describe("configuration options", () => {
     it("should pass configuration to McpServerAuth", async () => {
-      const { McpServerAuth } = await import("./McpServerAuth.js");
       const mockInit = vi.mocked(McpServerAuth.init);
 
       await auth({
@@ -206,9 +220,9 @@ describe("auth middleware", () => {
       expect(mockHandleRequest).not.toHaveBeenCalled();
 
       // Should protect /api routes
-      mockHandleRequest.mockRejectedValue(new Error("Authentication failed"));
+      mockHandleRequest.mockRejectedValue(new AuthenticationError("Authentication failed"));
       const response = await request(customApp).get("/api/test").expect(401);
-      expect(response.body.error).toBe("unauthorized");
+      expect(response.body.error).toBe("authentication_error");
     });
   });
 });

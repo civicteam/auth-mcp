@@ -3,7 +3,7 @@ export const DEFAULT_WELLKNOWN_URL = "https://auth.civic.com/oauth/.well-known/o
 /**
  * Default scope for OAuth authentication
  */
-export const DEFAULT_SCOPE = "openid profile email";
+export const DEFAULT_SCOPES = ["openid", "profile", "email", "offline-access"];
 
 /**
  * Default callback port for CLI authentication flow

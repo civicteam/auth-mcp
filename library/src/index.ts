@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Request, RequestHandler } from "express";
 import { McpServerAuth } from "./McpServerAuth.js";
 import { DEFAULT_MCP_ROUTE } from "./constants";
+import { AuthenticationError } from "./types.js";
 import type { CivicAuthOptions, ExtendedAuthInfo } from "./types.js";
 
 export * from "./types.js";
@@ -66,20 +67,14 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
 
       next();
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "Authentication failed") {
-          return res.status(401).json({
-            error: "unauthorized",
-            error_description: error.message,
-          });
-        }
-        if (error.message === "Token validation failed") {
-          return res.status(401).json({
-            error: "invalid_token",
-            error_description: error.message,
-          });
-        }
+      if (error instanceof AuthenticationError) {
+        // authentication errors e.g. jwt verification errors (expired, invalid signature, etc.) should return 401
+        return res.status(401).json({
+          error: "authentication_error",
+          error_description: error.message,
+        });
       }
+
       // Unknown error
       return res.status(500).json({
         error: "internal_error",
