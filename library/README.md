@@ -238,18 +238,12 @@ Implement your own persistence strategy by implementing the `TokenPersistence` i
 import { TokenPersistence } from "@civic/auth-mcp/client";
 import type { OAuthTokens } from "@modelcontextprotocol/sdk/shared/auth.js";
 
-class DatabaseTokenPersistence implements TokenPersistence {
-  async saveTokens(tokens: OAuthTokens): Promise<void> {
-    await db.tokens.upsert({ userId: this.userId }, tokens);
-  }
+class MyTokenPersistence implements TokenPersistence {
+  async saveTokens(tokens: OAuthTokens): Promise<void> { ... }
 
-  async loadTokens(): Promise<OAuthTokens | undefined> {
-    return await db.tokens.findOne({ userId: this.userId });
-  }
+  async loadTokens(): Promise<OAuthTokens | undefined> { ... }
 
-  async clearTokens(): Promise<void> {
-    await db.tokens.delete({ userId: this.userId });
-  }
+  async clearTokens(): Promise<void> { ... }
 }
 
 const authProvider = new CLIAuthProvider({
