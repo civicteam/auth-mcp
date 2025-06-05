@@ -16,7 +16,7 @@ vi.mock("./McpServerAuth.js", () => ({
       mockGetProtectedResourceMetadata = vi.fn((issuerUrl) => ({
         resource: issuerUrl,
         authorization_servers: ["https://auth.civic.com"],
-        scopes_supported: ["openid", "profile", "email", "offline-access"],
+        scopes_supported: ["openid", "profile", "email", "offline_access"],
         bearer_methods_supported: ["header"],
         resource_documentation: "https://docs.civic.com",
         resource_policy_uri: "https://www.civic.com/privacy-policy",
