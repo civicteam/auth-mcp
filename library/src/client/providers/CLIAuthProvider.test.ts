@@ -16,17 +16,32 @@ vi.mock("node:child_process", () => ({
   }),
 }));
 
-// Mock http server
-const mockServerInstance = {
-  listen: vi.fn((_port, callback) => callback()),
-  close: vi.fn((callback) => callback?.()),
-};
-
+// Mock http module
 vi.mock("node:http", () => ({
   default: {
-    createServer: vi.fn(() => mockServerInstance),
+    createServer: vi.fn(),
   },
 }));
+
+// Helper function to create a clean mock server
+function createMockServer(port = 8080) {
+  const mockServer = {
+    listen: vi.fn((_port, _host) => {
+      // Immediately trigger 'listening' event
+      setImmediate(() => {
+        const listeningHandler = mockServer.once.mock.calls.find((call) => call[0] === "listening")?.[1];
+        if (listeningHandler) {
+          listeningHandler();
+        }
+      });
+    }),
+    close: vi.fn((callback) => callback?.()),
+    once: vi.fn(),
+    off: vi.fn(),
+    address: vi.fn(() => ({ port })),
+  };
+  return mockServer;
+}
 
 describe("CLIAuthProvider", () => {
   let provider: CLIAuthProvider;
@@ -130,13 +145,17 @@ describe("CLIAuthProvider", () => {
 
   describe("redirectToAuthorization", () => {
     it("should start callback server and open browser", async () => {
-      const authUrl = new URL("https://auth.example.com/authorize");
+      const mockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(mockServer as any);
 
+      const authUrl = new URL("https://auth.example.com/authorize");
       await provider.redirectToAuthorization(authUrl);
 
       // Verify server was created and started
       expect(http.createServer).toHaveBeenCalled();
-      expect(mockServerInstance.listen).toHaveBeenCalledWith(8080, expect.any(Function));
+      expect(mockServer.listen).toHaveBeenCalledWith(8080, "localhost");
+      expect(mockServer.once).toHaveBeenCalledWith("error", expect.any(Function));
+      expect(mockServer.once).toHaveBeenCalledWith("listening", expect.any(Function));
 
       // Verify browser was opened
       expect(execFile).toHaveBeenCalled();
@@ -147,21 +166,122 @@ describe("CLIAuthProvider", () => {
 
       // Test macOS
       vi.clearAllMocks();
+      const mockServerMac = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(mockServerMac as any);
       Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
       await provider.redirectToAuthorization(authUrl);
       expect(execFile).toHaveBeenCalledWith("open", [authUrl.href], expect.any(Function));
 
       // Test Windows
       vi.clearAllMocks();
+      const mockServerWin = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(mockServerWin as any);
       Object.defineProperty(process, "platform", { value: "win32", configurable: true });
       await provider.redirectToAuthorization(authUrl);
       expect(execFile).toHaveBeenCalledWith("cmd", ["/c", "start", authUrl.href], expect.any(Function));
 
       // Test Linux
       vi.clearAllMocks();
+      const mockServerLinux = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(mockServerLinux as any);
       Object.defineProperty(process, "platform", { value: "linux", configurable: true });
       await provider.redirectToAuthorization(authUrl);
       expect(execFile).toHaveBeenCalledWith("xdg-open", [authUrl.href], expect.any(Function));
+    });
+
+    it("should fallback to random port when configured port is in use", async () => {
+      const providerWithFallback = new CLIAuthProvider({
+        clientId: "test-client-id",
+        callbackPort: 8080,
+        enablePortFallback: true,
+      });
+
+      let errorHandler: ((err: NodeJS.ErrnoException) => void) | undefined;
+      let listeningHandler: (() => void) | undefined;
+
+      // Create a mock server that simulates port conflict on first attempt
+      const mockServerWithConflict = {
+        listen: vi.fn((_port, _host) => {
+          setImmediate(() => {
+            if (_port === 8080) {
+              // First attempt - simulate EADDRINUSE error
+              if (errorHandler) {
+                const error = new Error("Port in use") as NodeJS.ErrnoException;
+                error.code = "EADDRINUSE";
+                errorHandler(error);
+              }
+            } else if (_port === 0) {
+              // Second attempt with random port - success
+              if (listeningHandler) {
+                listeningHandler();
+              }
+            }
+          });
+        }),
+        close: vi.fn((callback) => callback?.()),
+        once: vi.fn((event, handler) => {
+          if (event === "error") {
+            errorHandler = handler;
+          } else if (event === "listening") {
+            listeningHandler = handler;
+          }
+        }),
+        off: vi.fn(),
+        address: vi.fn(() => ({ port: 3000 })), // Random port assigned
+      };
+
+      vi.mocked(http.createServer).mockReturnValue(mockServerWithConflict as any);
+
+      const authUrl = new URL("https://auth.example.com/authorize");
+      await providerWithFallback.redirectToAuthorization(authUrl);
+
+      // Verify both listen attempts were made
+      expect(mockServerWithConflict.listen).toHaveBeenCalledWith(8080, "localhost");
+      expect(mockServerWithConflict.listen).toHaveBeenCalledWith(0, "localhost");
+      expect(mockServerWithConflict.listen).toHaveBeenCalledTimes(2);
+
+      // Verify the actual callback port was updated
+      const redirectUrl = providerWithFallback.redirectUrl;
+      expect(redirectUrl.toString()).toBe("http://localhost:3000/callback");
+
+      const metadata = providerWithFallback.clientMetadata;
+      expect(metadata.redirect_uris).toEqual(["http://localhost:3000/callback"]);
+    });
+
+    it("should throw error when port is in use and fallback is disabled", async () => {
+      const providerWithoutFallback = new CLIAuthProvider({
+        clientId: "test-client-id",
+        callbackPort: 8080,
+        enablePortFallback: false,
+      });
+
+      // Create a mock server that simulates port conflict
+      const mockServerWithError = {
+        listen: vi.fn((_port, _host) => {
+          setImmediate(() => {
+            const errorHandler = mockServerWithError.once.mock.calls.find((call) => call[0] === "error")?.[1];
+            if (errorHandler) {
+              const error = new Error("Port in use") as NodeJS.ErrnoException;
+              error.code = "EADDRINUSE";
+              errorHandler(error);
+            }
+          });
+        }),
+        close: vi.fn((callback) => callback?.()),
+        once: vi.fn(),
+        off: vi.fn(),
+        address: vi.fn(() => ({ port: 8080 })),
+      };
+
+      vi.mocked(http.createServer).mockReturnValue(mockServerWithError as any);
+
+      const authUrl = new URL("https://auth.example.com/authorize");
+
+      await expect(providerWithoutFallback.redirectToAuthorization(authUrl)).rejects.toThrow("Port in use");
+
+      // Should only attempt the configured port once
+      expect(mockServerWithError.listen).toHaveBeenCalledWith(8080, "localhost");
+      expect(mockServerWithError.listen).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -176,18 +296,30 @@ describe("CLIAuthProvider", () => {
 
   describe("waitForAuthorizationCode", () => {
     it("should wait for authorization code", async () => {
+      // Create a fresh provider for this test
+      const testProvider = new CLIAuthProvider({
+        clientId: "test-client-id",
+        scope: DEFAULT_SCOPES.join(" "),
+        callbackPort: 8080,
+      });
+
+      // Create a clean mock server for this test
+      const cleanMockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(cleanMockServer as any);
+
       // Register a mock transport
       const mockTransport = {
         finishAuth: vi.fn().mockResolvedValue(undefined),
       } as any;
-      provider.registerTransport(mockTransport);
+      testProvider.registerTransport(mockTransport);
 
       // Start the authorization flow
       const authUrl = new URL("https://auth.example.com/authorize");
-      await provider.redirectToAuthorization(authUrl);
+      await testProvider.redirectToAuthorization(authUrl);
 
-      // Get the server callback handler
-      const serverCallback = (http.createServer as any).mock.calls[0][0];
+      // Get the server callback handler from the most recent createServer call
+      const createServerCalls = vi.mocked(http.createServer).mock.calls;
+      const serverCallback = createServerCalls[createServerCalls.length - 1][0] as (req: any, res: any) => void;
 
       // Simulate callback request with code
       const mockReq = {
@@ -201,7 +333,7 @@ describe("CLIAuthProvider", () => {
       serverCallback(mockReq, mockRes);
 
       // Wait for authorization should now resolve
-      const code = await provider.waitForAuthorizationCode();
+      const code = await testProvider.waitForAuthorizationCode();
       expect(code).toBe("test-auth-code");
 
       // Verify response was sent
@@ -211,12 +343,24 @@ describe("CLIAuthProvider", () => {
     });
 
     it("should handle callback errors", async () => {
+      // Create a fresh provider for this test
+      const testProvider = new CLIAuthProvider({
+        clientId: "test-client-id",
+        scope: DEFAULT_SCOPES.join(" "),
+        callbackPort: 8080,
+      });
+
+      // Create a clean mock server for this test
+      const cleanMockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(cleanMockServer as any);
+
       // Start the authorization flow
       const authUrl = new URL("https://auth.example.com/authorize");
-      await provider.redirectToAuthorization(authUrl);
+      await testProvider.redirectToAuthorization(authUrl);
 
-      // Get the server callback handler
-      const serverCallback = (http.createServer as any).mock.calls[0][0];
+      // Get the server callback handler from the most recent createServer call
+      const createServerCalls = vi.mocked(http.createServer).mock.calls;
+      const serverCallback = createServerCalls[createServerCalls.length - 1][0] as (req: any, res: any) => void;
 
       // Simulate callback request with error
       const mockReq = {
@@ -230,7 +374,7 @@ describe("CLIAuthProvider", () => {
       serverCallback(mockReq, mockRes);
 
       // Wait for authorization should reject
-      await expect(provider.waitForAuthorizationCode()).rejects.toThrow("OAuth error: access_denied");
+      await expect(testProvider.waitForAuthorizationCode()).rejects.toThrow("OAuth error: access_denied");
     });
   });
 });
