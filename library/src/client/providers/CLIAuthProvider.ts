@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import crypto from "node:crypto";
 import http from "node:http";
+import type { AddressInfo } from "node:net";
 import url from "node:url";
 import { promisify } from "node:util";
 import type { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
@@ -14,6 +15,7 @@ export interface CLIAuthProviderOptions extends CivicAuthProviderOptions {
   clientId: string;
   scope?: string;
   callbackPort?: number;
+  enablePortFallback?: boolean;
   successHtml?: string;
   errorHtml?: string;
 }
@@ -27,6 +29,8 @@ export class CLIAuthProvider extends CivicAuthProvider {
   private clientId: string;
   private scope: string;
   private callbackPort: number;
+  private enablePortFallback: boolean;
+  private actualCallbackPort: number;
   private successHtml: string;
   private errorHtml: string;
   private callbackServer: http.Server | undefined;
@@ -40,6 +44,8 @@ export class CLIAuthProvider extends CivicAuthProvider {
     this.clientId = options.clientId;
     this.scope = options.scope ?? DEFAULT_SCOPES.join(" ");
     this.callbackPort = options.callbackPort ?? DEFAULT_CALLBACK_PORT;
+    this.enablePortFallback = options.enablePortFallback ?? true;
+    this.actualCallbackPort = this.callbackPort;
     this.successHtml =
       options.successHtml ??
       '<html lang="en"><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>';
@@ -62,7 +68,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      redirect_uris: [`http://localhost:${this.callbackPort}/callback`],
+      redirect_uris: [`http://localhost:${this.actualCallbackPort}/callback`],
       client_name: this.clientId,
       scope: this.scope,
     };
@@ -98,7 +104,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
   get redirectUrl(): string | URL {
     // Return the redirect URL for the OAuth flow
-    return new URL(`http://localhost:${this.callbackPort}/callback`);
+    return new URL(`http://localhost:${this.actualCallbackPort}/callback`);
   }
 
   saveCodeVerifier(codeVerifier: string): void {
@@ -106,72 +112,99 @@ export class CLIAuthProvider extends CivicAuthProvider {
   }
 
   /**
-   * Starts a local HTTP server to handle the OAuth callback
+   * Listen on Port Promise
+   * @param server
+   * @param port
+   * @private port that is being listened on.
+   */
+  private listenOnPort(server: http.Server, port: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const onError = (err: NodeJS.ErrnoException) => {
+        server.off("listening", onListening);
+        reject(err);
+      };
+
+      const onListening = () => {
+        server.off("error", onError);
+        const address = server.address() as AddressInfo;
+        resolve(address.port);
+      };
+
+      server.once("error", onError);
+      server.once("listening", onListening);
+      server.listen(port, "localhost");
+    });
+  }
+
+  /**
+   * Starts a local HTTP server to handle the OAuth callback with port fallback support
    */
   private async startCallbackServer(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // Create a promise for the authorization code
-      this.authorizationCodePromise = new Promise((resolveCode, rejectCode) => {
-        this.authorizationCodeResolve = resolveCode;
-        this.authorizationCodeReject = rejectCode;
-      });
+    // Create a promise for the authorization code
+    this.authorizationCodePromise = new Promise((resolveCode, rejectCode) => {
+      this.authorizationCodeResolve = resolveCode;
+      this.authorizationCodeReject = rejectCode;
+    });
 
-      this.callbackServer = http.createServer((req, res) => {
-        if (!req.url) {
-          res.writeHead(400);
-          res.end("Bad Request");
-          return;
-        }
+    this.callbackServer = http.createServer((req, res) => {
+      if (!req.url) {
+        res.writeHead(400);
+        res.end("Bad Request");
+        return;
+      }
 
-        const parsedUrl = url.parse(req.url, true);
+      const parsedUrl = url.parse(req.url, true);
 
-        if (parsedUrl.pathname === "/callback") {
-          const code = parsedUrl.query.code as string;
-          const error = parsedUrl.query.error as string;
+      if (parsedUrl.pathname === "/callback") {
+        const code = parsedUrl.query.code as string;
+        const error = parsedUrl.query.error as string;
 
-          if (error) {
-            res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(this.errorHtml.replace("{{error}}", escapeHtml(error)));
+        if (error) {
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end(this.errorHtml.replace("{{error}}", escapeHtml(error)));
 
-            if (this.authorizationCodeReject) {
-              this.authorizationCodeReject(new Error(`OAuth error: ${error}`));
-            }
+          if (this.authorizationCodeReject) {
+            this.authorizationCodeReject(new Error(`OAuth error: ${error}`));
+          }
 
-            this.stopCallbackServer();
-          } else if (code) {
-            res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(this.successHtml);
+          this.stopCallbackServer();
+        } else if (code) {
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end(this.successHtml);
 
-            // Call finishAuth on the transport if set. This triggers the token exchange
-            if (this.transport) {
-              this.transport
-                .finishAuth(code)
-                .then(() => this.stopCallbackServer())
-                .then(() => this.authorizationCodeResolve?.(code))
-                .catch((error) => {
-                  console.error("Error in finishAuth:", error);
-                  this.authorizationCodeReject?.(error);
-                });
-            } else {
-              this.authorizationCodeReject?.(new Error("No transport registered"));
-            }
+          // Call finishAuth on the transport if set. This triggers the token exchange
+          if (this.transport) {
+            this.transport
+              .finishAuth(code)
+              .then(() => this.stopCallbackServer())
+              .then(() => this.authorizationCodeResolve?.(code))
+              .catch((error) => {
+                console.error("Error in finishAuth:", error);
+                this.authorizationCodeReject?.(error);
+              });
           } else {
-            res.writeHead(400);
-            res.end("Missing authorization code");
+            this.authorizationCodeReject?.(new Error("No transport registered"));
           }
         } else {
-          res.writeHead(404);
-          res.end("Not Found");
+          res.writeHead(400);
+          res.end("Missing authorization code");
         }
-      });
-
-      this.callbackServer.listen(this.callbackPort, () => {
-        console.log(`Callback server listening on http://localhost:${this.callbackPort}`);
-        resolve();
-      });
-
-      this.callbackServer.on("error", reject);
+      } else {
+        res.writeHead(404);
+        res.end("Not Found");
+      }
     });
+
+    try {
+      this.actualCallbackPort = await this.listenOnPort(this.callbackServer, this.callbackPort);
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code === "EADDRINUSE" && this.enablePortFallback) {
+        console.warn(`Port ${this.callbackPort} in use. Trying a random port...`);
+        this.actualCallbackPort = await this.listenOnPort(this.callbackServer, 0); // 0 = random available port
+      } else {
+        throw err;
+      }
+    }
   }
 
   /**
