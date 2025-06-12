@@ -311,6 +311,24 @@ describe("CLIAuthProvider", () => {
       expect(mockServerWithError.listen).toHaveBeenCalledWith(8080, "localhost");
       expect(mockServerWithError.listen).toHaveBeenCalledTimes(1);
     });
+
+    it("should throw error when authorization flow is already in progress", async () => {
+      const mockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(mockServer as any);
+
+      const authUrl = new URL("https://auth.example.com/authorize");
+
+      // Start first authorization flow
+      await provider.redirectToAuthorization(authUrl);
+
+      // Attempt to start second authorization flow should throw
+      await expect(provider.redirectToAuthorization(authUrl)).rejects.toThrow(
+        "Authorization flow already in progress. Please wait for it to complete."
+      );
+
+      // Verify second server was not created
+      expect(http.createServer).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("registerTransport", () => {
@@ -403,6 +421,115 @@ describe("CLIAuthProvider", () => {
 
       // Verify server was cleaned up after timeout
       expect(cleanMockServer.close).toHaveBeenCalled();
+    });
+
+    it("should handle missing request URL", async () => {
+      const testProvider = new CLIAuthProvider({
+        clientId: "test-client-id",
+        scope: DEFAULT_SCOPES.join(" "),
+        callbackPort: 8080,
+      });
+
+      const cleanMockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(cleanMockServer as any);
+
+      const authUrl = new URL("https://auth.example.com/authorize");
+      await testProvider.redirectToAuthorization(authUrl);
+
+      // Simulate callback with missing URL
+      const createServerCalls = vi.mocked(http.createServer).mock.calls;
+      const serverCallback = createServerCalls[createServerCalls.length - 1][0] as (req: any, res: any) => void;
+
+      const mockReq = { url: null }; // Missing URL
+      const mockRes = {
+        writeHead: vi.fn(),
+        end: vi.fn(),
+      };
+
+      serverCallback(mockReq, mockRes);
+
+      // Verify 400 response
+      expect(mockRes.writeHead).toHaveBeenCalledWith(400);
+      expect(mockRes.end).toHaveBeenCalledWith("Bad Request");
+    });
+
+    it("should handle missing authorization code", async () => {
+      const testProvider = new CLIAuthProvider({
+        clientId: "test-client-id",
+        scope: DEFAULT_SCOPES.join(" "),
+        callbackPort: 8080,
+      });
+
+      const cleanMockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(cleanMockServer as any);
+
+      const authUrl = new URL("https://auth.example.com/authorize");
+      await testProvider.redirectToAuthorization(authUrl);
+
+      // Simulate callback without code or error parameters
+      const mockRes = simulateCallback("/callback");
+
+      // Verify 400 response for missing authorization code
+      expect(mockRes.writeHead).toHaveBeenCalledWith(400);
+      expect(mockRes.end).toHaveBeenCalledWith("Missing authorization code");
+    });
+
+    it("should handle missing transport", async () => {
+      const testProvider = new CLIAuthProvider({
+        clientId: "test-client-id",
+        scope: DEFAULT_SCOPES.join(" "),
+        callbackPort: 8080,
+      });
+
+      const cleanMockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(cleanMockServer as any);
+
+      // Do NOT register a transport
+
+      const authUrl = new URL("https://auth.example.com/authorize");
+      await testProvider.redirectToAuthorization(authUrl);
+
+      // Simulate successful callback with code but no transport
+      simulateCallback("/callback?code=test-auth-code");
+
+      // Wait for authorization should reject with "No transport registered"
+      await expect(testProvider.waitForAuthorizationCode()).rejects.toThrow("No transport registered");
+    });
+
+    it("should handle finishAuth errors", async () => {
+      const testProvider = new CLIAuthProvider({
+        clientId: "test-client-id",
+        scope: DEFAULT_SCOPES.join(" "),
+        callbackPort: 8080,
+      });
+
+      const cleanMockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(cleanMockServer as any);
+
+      // Register a mock transport that throws an error
+      const mockTransport = {
+        finishAuth: vi.fn().mockRejectedValue(new Error("Token exchange failed")),
+      } as any;
+      testProvider.registerTransport(mockTransport);
+
+      const authUrl = new URL("https://auth.example.com/authorize");
+      await testProvider.redirectToAuthorization(authUrl);
+
+      // Spy on console.error to verify error logging
+      const consoleErrorSpy = vi.spyOn(console, "error");
+      consoleErrorSpy.mockImplementation(() => undefined);
+
+      // Simulate successful callback with code
+      simulateCallback("/callback?code=test-auth-code");
+
+      // Wait for authorization should reject with the transport error
+      await expect(testProvider.waitForAuthorizationCode()).rejects.toThrow("Token exchange failed");
+
+      // Verify error was logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Error in finishAuth:", expect.any(Error));
+
+      // Restore console.error
+      consoleErrorSpy.mockRestore();
     });
   });
 });
