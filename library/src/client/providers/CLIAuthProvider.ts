@@ -30,7 +30,6 @@ export class CLIAuthProvider extends CivicAuthProvider {
   private scope: string;
   private callbackPort: number;
   private enablePortFallback: boolean;
-  private actualCallbackPort: number;
   private successHtml: string;
   private errorHtml: string;
   private callbackServer: http.Server | undefined;
@@ -45,7 +44,6 @@ export class CLIAuthProvider extends CivicAuthProvider {
     this.scope = options.scope ?? DEFAULT_SCOPES.join(" ");
     this.callbackPort = options.callbackPort ?? DEFAULT_CALLBACK_PORT;
     this.enablePortFallback = options.enablePortFallback ?? true;
-    this.actualCallbackPort = this.callbackPort;
     this.successHtml =
       options.successHtml ??
       '<html lang="en"><body><h1>Authorization Successful</h1><p>You can now close this window.</p></body></html>';
@@ -68,7 +66,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      redirect_uris: [`http://localhost:${this.actualCallbackPort}/callback`],
+      redirect_uris: [this.getCallbackUrl(this.callbackPort)],
       client_name: this.clientId,
       scope: this.scope,
     };
@@ -86,10 +84,18 @@ export class CLIAuthProvider extends CivicAuthProvider {
     console.log(`Opening authorization URL in browser: ${authorizationUrl.href}`);
 
     // Start the callback server before opening the browser
-    await this.startCallbackServer();
+    const actualPort = await this.startCallbackServer();
+
+    // Modify the auth URL to use updated redirect URI if port changed
+    let urlToOpen = authorizationUrl.href;
+    if (actualPort) {
+      const authUrlObj = new URL(authorizationUrl);
+      authUrlObj.searchParams.set("redirect_uri", this.getCallbackUrl(actualPort));
+      urlToOpen = authUrlObj.href;
+    }
 
     // Open URL in default browser
-    await this.openInBrowser(authorizationUrl.href);
+    await this.openInBrowser(urlToOpen);
 
     console.log("Please complete the authorization in your browser.");
   }
@@ -104,11 +110,15 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
   get redirectUrl(): string | URL {
     // Return the redirect URL for the OAuth flow
-    return new URL(`http://localhost:${this.actualCallbackPort}/callback`);
+    return new URL(this.getCallbackUrl(this.callbackPort));
   }
 
   saveCodeVerifier(codeVerifier: string): void {
     this.storedCodeVerifier = codeVerifier;
+  }
+
+  private getCallbackUrl(port: number): string {
+    return `http://localhost:${port}/callback`;
   }
 
   /**
@@ -138,8 +148,9 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
   /**
    * Starts a local HTTP server to handle the OAuth callback with port fallback support
+   * @returns The actual port number if different from the configured port, undefined otherwise
    */
-  private async startCallbackServer(): Promise<void> {
+  private async startCallbackServer(): Promise<number | undefined> {
     // Create a promise for the authorization code
     this.authorizationCodePromise = new Promise((resolveCode, rejectCode) => {
       this.authorizationCodeResolve = resolveCode;
@@ -195,16 +206,19 @@ export class CLIAuthProvider extends CivicAuthProvider {
       }
     });
 
+    let actualPort: number;
     try {
-      this.actualCallbackPort = await this.listenOnPort(this.callbackServer, this.callbackPort);
+      actualPort = await this.listenOnPort(this.callbackServer, this.callbackPort);
     } catch (err: unknown) {
       if ((err as NodeJS.ErrnoException).code === "EADDRINUSE" && this.enablePortFallback) {
         console.warn(`Port ${this.callbackPort} in use. Trying a random port...`);
-        this.actualCallbackPort = await this.listenOnPort(this.callbackServer, 0); // 0 = random available port
+        actualPort = await this.listenOnPort(this.callbackServer, 0); // 0 = random available port
       } else {
         throw err;
       }
     }
+
+    return actualPort !== this.callbackPort ? actualPort : undefined;
   }
 
   /**

@@ -240,12 +240,19 @@ describe("CLIAuthProvider", () => {
       expect(mockServerWithConflict.listen).toHaveBeenCalledWith(0, "localhost");
       expect(mockServerWithConflict.listen).toHaveBeenCalledTimes(2);
 
-      // Verify the actual callback port was updated
+      // Verify that redirectUrl and clientMetadata still use the configured port
       const redirectUrl = providerWithFallback.redirectUrl;
-      expect(redirectUrl.toString()).toBe("http://localhost:3000/callback");
+      expect(redirectUrl.toString()).toBe("http://localhost:8080/callback");
 
       const metadata = providerWithFallback.clientMetadata;
-      expect(metadata.redirect_uris).toEqual(["http://localhost:3000/callback"]);
+      expect(metadata.redirect_uris).toEqual(["http://localhost:8080/callback"]);
+
+      // The authorization URL should have been modified with the actual port
+      expect(execFile).toHaveBeenCalledWith(
+        "xdg-open",
+        [expect.stringContaining("redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback")],
+        expect.any(Function)
+      );
     });
 
     it("should throw error when port is in use and fallback is disabled", async () => {
