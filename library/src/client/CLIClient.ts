@@ -17,21 +17,18 @@ export class CLIClient extends Client {
     } catch (error: unknown) {
       // Check if this is an authorization error
       if (error instanceof Error) {
+        // This error.message is ONLY returned if auth() in @modelcontextprotocol/sdk/client/auth.js
+        // returns "REDIRECT", therefore we waitForAuthorizationCode() and connect again.
         if (error.message === "Unauthorized") {
           console.log("Authorization required, waiting for user to complete OAuth flow...");
           const authProvider = transport.authProvider;
 
-          // only wait if the tokens have not been set already
-          const tokens = await authProvider.tokens();
-          if (!tokens) {
-            // Wait for the OAuth flow to complete
-            await authProvider.waitForAuthorizationCode();
-            console.log("Authorization completed.");
+          // Wait for the OAuth flow to complete
+          await authProvider.waitForAuthorizationCode();
+          console.log("Authorization completed.");
 
-            // Retry the connection - the auth provider now has tokens
-            return await super.connect(transport);
-          }
-          console.log("Authorization already completed, but still unauthorized.");
+          // Retry the connection - the auth provider now has tokens
+          return await super.connect(transport);
         }
       }
 
