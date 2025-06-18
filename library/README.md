@@ -43,6 +43,14 @@ Add the middleware to your express app:
 ```typescript
 app.use(await auth());
 ```
+Out of the box, this uses Civic Auth as an authentication provider, which is the fastest way to get started.
+
+Once you are ready to go live, obtain a client ID from [auth.civic.com](https://auth.civic.com) and replace the default client ID in the middleware:
+```typescript
+app.use(await auth({
+    clientId: "...", // Get your client ID from auth.civic.com
+}));
+```
 
 That's it!
 
@@ -278,6 +286,24 @@ const mcpClient = new Client(
 
 await mcpClient.connect(transport);
 ```
+
+### 🛠️ Dynamic Client Registration
+
+Some MCP Clients use [OAuth 2.0 Dynamic Client Registration](https://datatracker.ietf.org/doc/html/rfc7591) to automatically register with the auth server.
+
+This means that the client ID sent to your MCP server will not match your client ID, as a new client ID is generated dynamically during the registration process for each client.
+
+Civic-Auth, and the @civic/auth-mcp library support this. To enable it, set the `allowDynamicClientRegistration` option to `true` in the MCP server configuration:
+
+```typescript
+app.use(await auth({
+    allowDynamicClientRegistration: true,
+}));
+```
+
+This will ensure that your client ID is passed to the auth server during client registration, and resultant tokens will be valid for your MCP server only.
+
+Note - this feature is available for the Civic Auth provider only. Behaviour may differ for other providers.
 
 ---
 

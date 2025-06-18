@@ -1,7 +1,7 @@
 import { jwtVerify } from "jose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { McpServerAuth } from "./McpServerAuth.js";
-import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL } from "./constants.js";
+import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
 import { JWTVerificationError } from "./types.js";
 
 // Mock fetch globally
@@ -32,18 +32,37 @@ describe("McpServerAuth", () => {
   });
 
   describe("init", () => {
-    it("should fetch OIDC configuration from default URL", async () => {
+    it("should fetch OIDC configuration from default URL without subdomain", async () => {
       const auth = await McpServerAuth.init();
 
       expect(global.fetch).toHaveBeenCalledWith(DEFAULT_WELLKNOWN_URL);
       expect(auth).toBeInstanceOf(McpServerAuth);
     });
 
-    it("should fetch OIDC configuration from custom URL", async () => {
+    it("should fetch OIDC configuration from custom URL without subdomain", async () => {
       const customUrl = "https://custom.auth.com/.well-known/openid-configuration";
       const auth = await McpServerAuth.init({ wellKnownUrl: customUrl });
 
       expect(global.fetch).toHaveBeenCalledWith(customUrl);
+      expect(auth).toBeInstanceOf(McpServerAuth);
+    });
+
+    it("should use custom client ID subdomain when dynamic registration is enabled", async () => {
+      const auth = await McpServerAuth.init({
+        clientId: "custom-client-id",
+        allowDynamicClientRegistration: true,
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://custom-client-id.auth.civic.com/oauth/.well-known/openid-configuration"
+      );
+      expect(auth).toBeInstanceOf(McpServerAuth);
+    });
+
+    it("should not use subdomain for custom client ID by default", async () => {
+      const auth = await McpServerAuth.init({ clientId: "custom-client-id" });
+
+      expect(global.fetch).toHaveBeenCalledWith(DEFAULT_WELLKNOWN_URL);
       expect(auth).toBeInstanceOf(McpServerAuth);
     });
 
@@ -54,6 +73,22 @@ describe("McpServerAuth", () => {
       });
 
       await expect(McpServerAuth.init()).rejects.toThrow("Failed to fetch Civic Auth configuration: Not Found");
+    });
+
+    it("should not use subdomain when allowDynamicClientRegistration is false", async () => {
+      const auth = await McpServerAuth.init({ allowDynamicClientRegistration: false });
+
+      expect(global.fetch).toHaveBeenCalledWith(DEFAULT_WELLKNOWN_URL);
+      expect(auth).toBeInstanceOf(McpServerAuth);
+    });
+
+    it("should use public client ID subdomain when dynamic registration is enabled without custom client", async () => {
+      const auth = await McpServerAuth.init({ allowDynamicClientRegistration: true });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        `https://${PUBLIC_CIVIC_CLIENT_ID}.auth.civic.com/oauth/.well-known/openid-configuration`
+      );
+      expect(auth).toBeInstanceOf(McpServerAuth);
     });
   });
 
@@ -67,8 +102,6 @@ describe("McpServerAuth", () => {
         authorization_servers: ["https://auth.civic.com"],
         scopes_supported: DEFAULT_SCOPES,
         bearer_methods_supported: ["header"],
-        resource_documentation: "https://docs.civic.com",
-        resource_policy_uri: "https://www.civic.com/privacy-policy",
       });
     });
 
@@ -90,7 +123,8 @@ describe("McpServerAuth", () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
-          client_id: "client123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID, // Use public client ID for default
+          tid: undefined,
           scope: DEFAULT_SCOPES.slice(0, 2).join(" "),
           exp: 1234567890,
         },
@@ -108,7 +142,7 @@ describe("McpServerAuth", () => {
 
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
-        clientId: "client123",
+        clientId: PUBLIC_CIVIC_CLIENT_ID,
         scopes: DEFAULT_SCOPES.slice(0, 2),
         expiresAt: 1234567890,
         extra: {
@@ -148,7 +182,8 @@ describe("McpServerAuth", () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
-          client_id: "client123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
           scope: DEFAULT_SCOPES[0],
           exp: 1234567890,
         },
@@ -178,7 +213,7 @@ describe("McpServerAuth", () => {
       expect(onLoginCallback).toHaveBeenCalledWith(
         {
           token: "valid.jwt.token",
-          clientId: "client123",
+          clientId: PUBLIC_CIVIC_CLIENT_ID,
           scopes: [DEFAULT_SCOPES[0]],
           expiresAt: 1234567890,
           extra: {
@@ -190,7 +225,7 @@ describe("McpServerAuth", () => {
 
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
-        clientId: "client123",
+        clientId: PUBLIC_CIVIC_CLIENT_ID,
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
@@ -253,7 +288,9 @@ describe("McpServerAuth", () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
-          aud: "audience123", // Use aud instead of client_id
+          aud: PUBLIC_CIVIC_CLIENT_ID, // Use aud instead of client_id
+          client_id: undefined,
+          tid: PUBLIC_CIVIC_CLIENT_ID, // tid should match for public client
           exp: 1234567890,
         },
         protectedHeader: {} as any,
@@ -270,7 +307,7 @@ describe("McpServerAuth", () => {
 
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
-        clientId: "audience123",
+        clientId: PUBLIC_CIVIC_CLIENT_ID,
         scopes: [],
         expiresAt: 1234567890,
         extra: {
@@ -283,7 +320,8 @@ describe("McpServerAuth", () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
-          client_id: "client123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
           scope: DEFAULT_SCOPES[0],
           exp: 1234567890,
         },
@@ -313,6 +351,179 @@ describe("McpServerAuth", () => {
       } as any;
 
       await expect(auth.handleRequest(mockRequest)).rejects.toThrow("Authentication failed");
+    });
+
+    it("should verify client_id matches expected client ID", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "wrong-client-id",
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({ clientId: "expected-client-id" });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(
+        "Invalid client_id or tid in token. Expected: expected-client-id"
+      );
+    });
+
+    it("should verify tid matches expected client ID when client_id doesn't match", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "dynamic-client-id",
+          tid: "expected-client-id",
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({ clientId: "expected-client-id" });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(authInfo).toEqual({
+        token: "valid.jwt.token",
+        clientId: "dynamic-client-id",
+        scopes: [DEFAULT_SCOPES[0]],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      });
+    });
+
+    it("should verify against public civic client ID when using default Civic auth", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "wrong-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init(); // No clientId specified, using Civic
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(JWTVerificationError);
+      await expect(auth.handleRequest(mockRequest)).rejects.toMatchObject({
+        message: `Invalid client_id or tid in token. Expected: ${PUBLIC_CIVIC_CLIENT_ID}`,
+      });
+    });
+
+    it("should not verify client ID when using custom auth server without clientId", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "any-client-id",
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({
+        wellKnownUrl: "https://custom.auth.com/.well-known/openid-configuration",
+      });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(authInfo).toEqual({
+        token: "valid.jwt.token",
+        clientId: "any-client-id",
+        scopes: [DEFAULT_SCOPES[0]],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      });
+    });
+
+    it("should still verify client ID when allowDynamicClientRegistration is false", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "wrong-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({
+        clientId: "expected-client-id",
+        allowDynamicClientRegistration: false,
+      });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(JWTVerificationError);
+      await expect(auth.handleRequest(mockRequest)).rejects.toMatchObject({
+        message: "Invalid client_id or tid in token. Expected: expected-client-id",
+      });
+    });
+
+    it("should verify against public client ID when allowDynamicClientRegistration is false", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({ allowDynamicClientRegistration: false });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(authInfo).toEqual({
+        token: "valid.jwt.token",
+        clientId: PUBLIC_CIVIC_CLIENT_ID,
+        scopes: [DEFAULT_SCOPES[0]],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      });
     });
   });
 });

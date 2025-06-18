@@ -1,0 +1,27 @@
+@startuml
+participant Agent
+participant Auth_Server
+participant LoginApp
+participant MCP_Server
+
+== ❶ User adds MCP server URL to Agent ==
+Agent->>MCP_Server: GET \n/.well-known/oauth-protected-resource
+MCP_Server-->>Agent: JSON (resource,\n authorization_servers=\n["https://<cid>.auth.civic.com"])
+Agent->>Auth_Server: GET https://<cid>.auth.civic.com/\n.well-known/oauth-authorization-server
+Auth_Server-->>Agent: metadata (registration_endpoint=\nhttps://<cid>.auth.civic.com/oauth/reg)
+
+== ❷ Dynamic Client Registration ==
+Agent->>Auth_Server: POST /oauth/reg\n(Host:<cid>.auth.civic.com)
+Auth_Server->>LoginApp: GET tenant(<cid>).dcr_enabled?
+LoginApp-->>Auth_Server: true
+Auth_Server-->>Agent: 201 {client_id_dyn, client_secret}
+
+== ❸ Normal OAuth flow (e.g. Device-Flow) ==
+Agent->>Auth_Server: /device_authorization (client_id_dyn)
+... (user authenticates) ...
+Agent->>Auth_Server: /token → access_token (tid=<cid>)
+
+== ❹ Call protected API ==
+Agent->>MCP_Server: POST /mcp  (Authorization:\nBearer AT[client_id=client_id_dyn])
+MCP_Server-->>Agent: 200 OK
+@enduml
