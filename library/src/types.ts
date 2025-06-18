@@ -1,12 +1,13 @@
 import type { IncomingMessage } from "node:http";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type { JWTPayload } from "jose";
 
 export interface CivicAuthOptions<
   TAuthInfo extends ExtendedAuthInfo,
   TRequest extends IncomingMessage = IncomingMessage,
 > {
   /**
-   * The URL to Civic's well-known OIDC configuration
+   * The URL to the auth server's well-known OIDC configuration
    * Defaults to https://auth.civic.com/oauth/.well-known/openid-configuration
    */
   wellKnownUrl?: string;
@@ -43,6 +44,20 @@ export interface CivicAuthOptions<
    * @returns Enriched auth info with custom data
    */
   onLogin?: (authInfo: ExtendedAuthInfo | null, request?: TRequest) => Promise<TAuthInfo | null>;
+
+  /**
+   * Optional OAuth client ID / Tenant ID.
+   * When set, the access token must include *either* a "client_id" field or "tid" field that matches it.
+   */
+  clientId?: string;
+
+  /**
+   * Whether to allow dynamic client registration by adding client ID as subdomain.
+   * When true, the client ID will be added as a subdomain to the auth server URL.
+   * When false (default), the auth server URL will be used as-is without subdomain prefixing.
+   * Defaults to false.
+   */
+  allowDynamicClientRegistration?: boolean;
 }
 
 export interface OIDCWellKnownConfiguration {
@@ -85,3 +100,8 @@ export class JWTVerificationError extends AuthenticationError {
     this.name = "JWTVerificationError";
   }
 }
+
+export type AccessTokenPayload = JWTPayload & {
+  client_id: string | undefined;
+  tid: string | undefined;
+};

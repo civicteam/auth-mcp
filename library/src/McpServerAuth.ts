@@ -1,13 +1,80 @@
 import type { IncomingMessage } from "node:http";
 import { type JWTPayload, createRemoteJWKSet, jwtVerify } from "jose";
-import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL } from "./constants.js";
+import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
 import {
+  type AccessTokenPayload,
   AuthenticationError,
   type CivicAuthOptions,
   type ExtendedAuthInfo,
   JWTVerificationError,
   type OIDCWellKnownConfiguration,
 } from "./types.js";
+
+/**
+ * Return the client ID that must be in the jwt (in either the tid or client_id field).
+ * If a client id is explicitly specified by the config then use that.
+ * If the auth server is civic, then we allow the public client id if none is specified.
+ * Otherwise, return undefined, which means the jwt will accept any access token from the specified issuer
+ * @param options
+ */
+const getExpectedClientId = <TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage>(
+  options: CivicAuthOptions<TAuthInfo, TRequest>
+): string | undefined => {
+  if (options.clientId) {
+    return options.clientId;
+  }
+
+  // If wellKnownUrl is not provided (undefined) or is the default, we're using Civic
+  if (!options.wellKnownUrl || options.wellKnownUrl === DEFAULT_WELLKNOWN_URL) {
+    return PUBLIC_CIVIC_CLIENT_ID;
+  }
+
+  return undefined;
+};
+
+/**
+ * Get the auth server URL based on the options provided.
+ * This adds tenant-specific information via the subdomain if using Civic Auth and dynamic client registration is enabled.
+ */
+const getAuthServer = <TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage>(
+  options: CivicAuthOptions<TAuthInfo, TRequest>
+): string => {
+  // if the wellknown url is explicitly set to something other than Civic, just use that
+  if (options.wellKnownUrl && options.wellKnownUrl !== DEFAULT_WELLKNOWN_URL) return options.wellKnownUrl;
+
+  // If dynamic client registration is enabled, adapt the URL with subdomain
+  if (options.allowDynamicClientRegistration) {
+    const clientId = getExpectedClientId(options) ?? PUBLIC_CIVIC_CLIENT_ID;
+    return DEFAULT_WELLKNOWN_URL.replace("https://", `https://${clientId}.`);
+  }
+
+  // Default behavior: use the URL as-is without subdomain
+  return DEFAULT_WELLKNOWN_URL;
+};
+
+/**
+ * Verify that the client_id or tid in the token matches the expected client ID.
+ * Throws an error if it does not match.
+ *
+ * In a DCR environment we would expect the actual client id to be the dynamically created one,
+ * but in that case the "tid" should refer to the tenant ID, which is the same as the "base"
+ * client ID passed in the options.
+ *
+ * @param payload The JWT payload containing client_id or tid
+ * @param expectedClientId The expected client ID to match against
+ */
+const verifyClientId = (payload: AccessTokenPayload, expectedClientId: string | undefined) => {
+  if (!expectedClientId) return;
+
+  // Check if either the client_id or tid matches the expected client ID
+  // At least one of them must match
+  const clientIdMatches = payload.client_id === expectedClientId;
+  const tidMatches = payload.tid === expectedClientId;
+
+  if (!clientIdMatches && !tidMatches) {
+    throw new AuthenticationError(`Invalid client_id or tid in token. Expected: ${expectedClientId}`);
+  }
+};
 
 /**
  * Core authentication functionality that can be used with any framework
@@ -29,7 +96,7 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
   static async init<TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage>(
     options: CivicAuthOptions<TAuthInfo, TRequest> = {}
   ): Promise<McpServerAuth<TAuthInfo, TRequest>> {
-    const wellKnownUrl = options.wellKnownUrl || DEFAULT_WELLKNOWN_URL;
+    const wellKnownUrl = getAuthServer(options);
     console.log(`Fetching Civic Auth OIDC configuration from ${wellKnownUrl}`);
 
     const response = await fetch(wellKnownUrl);
@@ -51,8 +118,6 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
       authorization_servers: [this.oidcConfig.issuer],
       scopes_supported: this.options.scopesSupported || DEFAULT_SCOPES,
       bearer_methods_supported: ["header"],
-      resource_documentation: "https://docs.civic.com",
-      resource_policy_uri: "https://www.civic.com/privacy-policy",
     };
   }
 
@@ -95,7 +160,7 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
    */
   private async extractBearerToken(authHeader: string | undefined): Promise<{
     token: string | null;
-    payload: JWTPayload | null;
+    payload: AccessTokenPayload | null;
   }> {
     if (!authHeader?.startsWith("Bearer ")) {
       return { token: null, payload: null };
@@ -105,9 +170,11 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
 
     try {
       // Verify the token - this will throw if invalid
-      const { payload } = await jwtVerify(token, this.jwks, {
+      const { payload } = await jwtVerify<AccessTokenPayload>(token, this.jwks, {
         issuer: this.oidcConfig.issuer,
       });
+
+      verifyClientId(payload, getExpectedClientId(this.options));
 
       return { token, payload };
     } catch (error) {

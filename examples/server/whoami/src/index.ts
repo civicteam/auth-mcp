@@ -2,11 +2,13 @@ import { auth } from "@civic/auth-mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express from "express";
+import cors from "cors";
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 33007;
 
 // Create your Express app
 const app = express();
+app.use(cors());
 
 // Add auth middleware
 app.use(await auth());

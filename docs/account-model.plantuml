@@ -1,0 +1,16 @@
+@startuml
+class Account {
+}
+
+class App {
+}
+
+class ClientCredentials {
+  - clientId: string
+  - clientSecret: string (optional)
+  - dynamic: boolean
+}
+
+Account "1" --> "many" App
+App "1" --> "many" ClientCredentials
+@enduml

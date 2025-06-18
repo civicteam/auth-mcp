@@ -1,0 +1,35 @@
+@startuml
+actor User
+participant "Agent" as Agent
+participant "MCP Server" as M
+participant "OAuth Server" as A
+participant "Browser" as Browser
+
+User -> Agent: Prompt
+Agent -> M : Tool request
+M --> Agent : 401 Unauthorized
+
+Agent -> M : GET /.well-known/oauth-protected-resource
+M --> Agent : <<OAuth metadata (pointing to A)>>
+
+Agent -> A : GET /.well-known/oauth-authorization-server
+A --> Agent : <<Auth server metadata (incl. client reg endpoint)>>
+
+Agent -> A : POST /register\n(client metadata)
+A --> Agent : <<client_id, client_secret,reg_access_token>>
+
+Agent -> Agent : Generate auth URL
+Agent -> User : <<auth URL>>
+
+User -> Browser : Open auth URL
+Browser -> A : Redirect to login
+A --> Browser : <<Auth code>>
+Browser -> User : <<Auth code>>
+User -> Agent : Send Auth code
+
+Agent -> A : POST /token\n(client_id, secret, code, PKCE)
+A --> Agent : <<Access token>>
+
+Agent -> M : Tool request with access token
+M --> Agent : Tool result
+@enduml
