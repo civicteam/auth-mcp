@@ -80,11 +80,11 @@ const verifyClientId = (payload: AccessTokenPayload, expectedClientId: string | 
  * Core authentication functionality that can be used with any framework
  */
 export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage> {
-  private oidcConfig: OIDCWellKnownConfiguration;
-  private jwks: ReturnType<typeof createRemoteJWKSet>;
-  private options: CivicAuthOptions<TAuthInfo, TRequest>;
+  protected oidcConfig: OIDCWellKnownConfiguration;
+  protected jwks: ReturnType<typeof createRemoteJWKSet>;
+  protected options: CivicAuthOptions<TAuthInfo, TRequest>;
 
-  private constructor(oidcConfig: OIDCWellKnownConfiguration, options: CivicAuthOptions<TAuthInfo, TRequest>) {
+  protected constructor(oidcConfig: OIDCWellKnownConfiguration, options: CivicAuthOptions<TAuthInfo, TRequest>) {
     this.oidcConfig = oidcConfig;
     this.options = options;
     this.jwks = createRemoteJWKSet(new URL(oidcConfig.jwks_uri));

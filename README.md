@@ -46,6 +46,23 @@ pnpm lint
 
 Full documentation and usage examples are available in the [`library/`](./library/) package.
 
+## 🚨 Legacy OAuth Mode
+
+For backward compatibility, the `auth()` middleware automatically includes legacy OAuth endpoints that allow MCP servers to act as OAuth servers. This mode is **enabled by default** but is deprecated.
+
+The following endpoints are automatically exposed:
+- `/.well-known/oauth-authorization-server` - OAuth server metadata
+- `/authorize` - Authorization endpoint (proxies to Civic Auth)
+- `/token` - Token endpoint (proxies to Civic Auth)
+- `/register` - Registration endpoint (if supported)
+
+To disable legacy mode:
+```typescript
+app.use(await auth({
+  enableLegacyOAuth: false  // Disable legacy OAuth endpoints
+}));
+```
+
 ## 📄 License
 
 It is provided **as-is**, without warranty of any kind, express or implied. Civic makes **no guarantees of fitness for a particular purpose or ongoing support**.

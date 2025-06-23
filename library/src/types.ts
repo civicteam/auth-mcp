@@ -58,6 +58,14 @@ export interface CivicAuthOptions<
    * Defaults to false.
    */
   allowDynamicClientRegistration?: boolean;
+
+  /**
+   * Enable legacy OAuth mode where MCP server acts as an OAuth server.
+   * When true, the server will expose OAuth endpoints that proxy to the underlying auth server.
+   * Defaults to true for backward compatibility.
+   * @deprecated This mode is deprecated. Clients should authenticate directly with the auth server.
+   */
+  enableLegacyOAuth?: boolean;
 }
 
 export interface OIDCWellKnownConfiguration {
