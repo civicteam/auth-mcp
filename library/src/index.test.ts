@@ -9,6 +9,16 @@ let mockGetProtectedResourceMetadata: any;
 let mockVerifyToken: any;
 let mockHandleRequest: any;
 
+// Mock OAuthProxyHandler
+vi.mock("./legacy/OAuthProxyHandler.js", () => ({
+  OAuthProxyHandler: vi.fn().mockImplementation(() => ({
+    handleAuthorize: vi.fn(),
+    handleCallback: vi.fn(),
+    handleToken: vi.fn(),
+    handleRegistration: vi.fn(),
+  })),
+}));
+
 // Mock McpServerAuth
 vi.mock("./McpServerAuth.js", () => ({
   McpServerAuth: {
@@ -28,6 +38,13 @@ vi.mock("./McpServerAuth.js", () => ({
         getProtectedResourceMetadata: mockGetProtectedResourceMetadata,
         verifyToken: mockVerifyToken,
         handleRequest: mockHandleRequest,
+        oidcConfig: {
+          issuer: "https://auth.civic.com/oauth",
+          authorization_endpoint: "https://auth.civic.com/oauth/authorize",
+          token_endpoint: "https://auth.civic.com/oauth/token",
+          jwks_uri: "https://auth.civic.com/oauth/.well-known/jwks.json",
+          registration_endpoint: "https://auth.civic.com/oauth/register",
+        },
       };
     }),
   },
@@ -223,6 +240,62 @@ describe("auth middleware", () => {
       mockHandleRequest.mockRejectedValue(new AuthenticationError("Authentication failed"));
       const response = await request(customApp).get("/api/test").expect(401);
       expect(response.body.error).toBe("authentication_error");
+    });
+  });
+
+  describe("legacy OAuth endpoints", () => {
+    it("should expose /.well-known/oauth-authorization-server when legacy mode is enabled", async () => {
+      const middleware = await auth();
+      app.use(middleware);
+
+      const response = await request(app).get("/.well-known/oauth-authorization-server");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        issuer: expect.any(String),
+        authorization_endpoint: expect.stringContaining("/authorize"),
+        token_endpoint: expect.stringContaining("/token"),
+        registration_endpoint: expect.stringContaining("/register"),
+        scopes_supported: expect.any(Array),
+        response_types_supported: ["code"],
+        grant_types_supported: ["authorization_code", "refresh_token"],
+      });
+    });
+
+    it("should not expose legacy endpoints when disabled", async () => {
+      // Create a new app for this test
+      const disabledApp = express();
+      const middleware = await auth({ enableLegacyOAuth: false });
+      disabledApp.use(middleware);
+
+      const response = await request(disabledApp).get("/.well-known/oauth-authorization-server");
+
+      expect(response.status).toBe(404);
+    });
+
+    it("should use custom state store when provided", async () => {
+      // Since we're only testing that the custom state store is passed through,
+      // we can use a simpler approach by checking if the option is properly configured
+      const mockStateStore = {
+        set: vi.fn().mockResolvedValue(undefined),
+        get: vi.fn().mockResolvedValue(null),
+        delete: vi.fn().mockResolvedValue(undefined),
+        cleanup: vi.fn().mockResolvedValue(undefined),
+      };
+
+      // Just verify the middleware accepts the stateStore option without error
+      const customApp = express();
+      const middleware = await auth({
+        enableLegacyOAuth: true,
+        stateStore: mockStateStore,
+      });
+      customApp.use(middleware);
+
+      // Verify the app was configured correctly by checking if legacy endpoints exist
+      const response = await request(customApp).get("/.well-known/oauth-authorization-server");
+      expect(response.status).toBe(200);
+
+      // The actual state store usage is tested in OAuthProxyHandler.test.ts
     });
   });
 });

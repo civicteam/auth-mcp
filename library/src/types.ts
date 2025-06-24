@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { JWTPayload } from "jose";
+import type { StateStore } from "./legacy";
 
 export interface CivicAuthOptions<
   TAuthInfo extends ExtendedAuthInfo,
@@ -58,6 +59,21 @@ export interface CivicAuthOptions<
    * Defaults to false.
    */
   allowDynamicClientRegistration?: boolean;
+
+  /**
+   * Enable legacy OAuth mode where MCP server acts as an OAuth server.
+   * When true, the server will expose OAuth endpoints that proxy to the underlying auth server.
+   * Defaults to true for backward compatibility.
+   * @deprecated This mode is deprecated. Clients should authenticate directly with the auth server.
+   */
+  enableLegacyOAuth?: boolean;
+
+  /**
+   * Custom state store for managing OAuth flow state between redirects in legacy mode.
+   * Only used when enableLegacyOAuth is true.
+   * Defaults to in-memory store.
+   */
+  stateStore?: StateStore;
 }
 
 export interface OIDCWellKnownConfiguration {

@@ -2,13 +2,16 @@ import { Router } from "express";
 import type { Request, RequestHandler } from "express";
 import { McpServerAuth } from "./McpServerAuth.js";
 import { DEFAULT_MCP_ROUTE } from "./constants";
+import { LegacyOAuthRouter } from "./legacy/LegacyOAuthRouter.js";
 import { AuthenticationError } from "./types.js";
-import type { CivicAuthOptions, ExtendedAuthInfo } from "./types.js";
+import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } from "./types.js";
 
 export * from "./types.js";
 export * from "./constants.js";
 export * from "./client/index.js";
 export { McpServerAuth } from "./McpServerAuth.js";
+export type { StateStore, OAuthState } from "./legacy/types.js";
+export { InMemoryStateStore } from "./legacy/StateStore.js";
 
 /**
  * Express middleware that configures an MCP server to use Civic Auth
@@ -18,6 +21,7 @@ export { McpServerAuth } from "./McpServerAuth.js";
  * 1. Exposes /.well-known/oauth-protected-resource metadata
  * 2. Validates bearer tokens using Civic's JWKS
  * 3. Attaches user info to the request
+ * 4. (Legacy) Optionally exposes OAuth server endpoints for backward compatibility
  *
  * @param options Configuration options
  * @returns Express middleware
@@ -27,10 +31,17 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
 ): Promise<RequestHandler> {
   console.log(`Civic Auth MCP middleware initialized with options: ${JSON.stringify(options)}`);
 
+  // Default to enabling legacy OAuth for backward compatibility
+  const enableLegacyOAuth = options.enableLegacyOAuth ?? true;
+
   // Initialize the core auth functionality
   const mcpServerAuth = await McpServerAuth.init<TAuthInfo, Request>(options);
 
   const mcpRoute = options.mcpRoute ?? DEFAULT_MCP_ROUTE;
+
+  // Get OIDC config for legacy mode
+  // @ts-expect-error - Accessing protected property for legacy compatibility
+  const oidcConfig = mcpServerAuth.oidcConfig as OIDCWellKnownConfiguration;
 
   // Create router
   const router = Router();
@@ -44,10 +55,21 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
     res.json(metadata);
   });
 
+  // Legacy OAuth endpoints
+  if (enableLegacyOAuth) {
+    const legacyOAuthRouter = new LegacyOAuthRouter(options, oidcConfig);
+    router.use(legacyOAuthRouter.createRouter());
+  }
+
   // Token validation middleware - only apply to mcpRoute
   router.use(async (req, res, next) => {
     // Skip auth for metadata endpoints
     if (req.path === "/.well-known/oauth-protected-resource") {
+      return next();
+    }
+
+    // Skip auth for legacy OAuth endpoints
+    if (enableLegacyOAuth && LegacyOAuthRouter.getOAuthPaths().includes(req.path)) {
       return next();
     }
 

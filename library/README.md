@@ -143,7 +143,11 @@ app.use(await auth({
       ...authInfo,
       extra: { ...authInfo.extra, ...userData }
     };
-  }
+  },
+  
+  // Legacy OAuth options
+  enableLegacyOAuth: true, // Defaults to true
+  stateStore: customStateStore, // Custom state store for OAuth flows
 }));
 ```
 
@@ -305,6 +309,53 @@ This will ensure that your client ID is passed to the auth server during client 
 
 Note - this feature is available for the Civic Auth provider only. Behaviour may differ for other providers.
 
+### 🔄 Legacy OAuth Support
+
+This library includes support for the [legacy MCP OAuth specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization) to ensure compatibility with existing clients while they transition to the latest specification.
+
+**Important**: This legacy support will be removed in a future version once all major clients have updated to the current MCP specification.
+
+The legacy OAuth mode:
+- Is **enabled by default** to ensure maximum compatibility
+- Provides OAuth endpoints directly on the MCP server (e.g., `/authorize`, `/token`)
+- Transparently proxies OAuth flows to the configured authorization server
+
+To disable legacy OAuth support (recommended once your clients are updated):
+
+```typescript
+app.use(await auth({
+    enableLegacyOAuth: false,
+}));
+```
+
+We recommend monitoring your client usage and disabling legacy support once all clients have been updated to use the standard OAuth flow with authorization server discovery.
+
+**NOTE** If testing with Claude (Web or Desktop), you will need to deploy your server to a remote environment using https first,
+as Claude does not support localhost MCP integrations.
+
+**NOTE** When using the legacy OAuth flow behind a _proxy_, make sure to enable the "trust proxy" setting
+in Express. See details [here](https://expressjs.com/en/guide/behind-proxies.html).
+This ensures the oauth metadata correctly generates "https" urls.
+
+```typescript
+app.enable('trust proxy');
+```
+
+#### Custom State Store
+
+By default, the legacy OAuth mode uses an in-memory state store for managing OAuth flow state between redirects. For production deployments with multiple servers or processes, you can provide a custom state store implementation:
+
+```typescript
+// Implement a custom state store (e.g., using Redis)
+class RedisStateStore implements StateStore {
+  ...
+}
+
+// Use the custom state store
+app.use(await auth({
+  stateStore: new RedisStateStore(),
+}));
+```
 ---
 
 ## ✨ Why Choose @civic/auth-mcp?

@@ -494,6 +494,42 @@ describe("McpServerAuth", () => {
       });
     });
 
+    it("should include token in authInfo when successfully authenticated", async () => {
+      const mockToken = "valid.jwt.token";
+      const payload = {
+        sub: "user123",
+        client_id: PUBLIC_CIVIC_CLIENT_ID,
+        tid: undefined,
+        scope: DEFAULT_SCOPES.slice(0, 2).join(" "),
+        exp: 1234567890,
+      };
+
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload,
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init();
+      const mockRequest = {
+        headers: {
+          authorization: `Bearer ${mockToken}`,
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(authInfo.token).toBe(mockToken);
+      expect(authInfo).toEqual({
+        token: mockToken,
+        clientId: payload.client_id,
+        scopes: DEFAULT_SCOPES.slice(0, 2),
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      });
+    });
+
     it("should verify against public client ID when allowDynamicClientRegistration is false", async () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {

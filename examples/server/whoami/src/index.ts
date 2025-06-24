@@ -1,17 +1,103 @@
 import { auth } from "@civic/auth-mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import express from "express";
 import cors from "cors";
+import express from "express";
 
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 33007;
 
 // Create your Express app
 const app = express();
+app.use((_req, res, next) => {
+  // Add the header to all responses
+  res.setHeader("Access-Control-Allow-Private-Network", "true");
+
+  next();
+});
 app.use(cors());
 
+// Add comprehensive logging middleware
+app.use((req, res, next) => {
+  // Capture start time
+  const startTime = Date.now();
+
+  // Log request details
+  console.log("\n=== INCOMING REQUEST ===");
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log("Headers:", JSON.stringify(req.headers, null, 2));
+
+  // Capture request body
+  let _requestBody: any;
+  const originalSend = res.send;
+  const originalJson = res.json;
+  const originalEnd = res.end;
+
+  // Store original body parsers
+  const chunks: Buffer[] = [];
+
+  // Intercept raw body
+  req.on("data", (chunk) => {
+    chunks.push(chunk);
+  });
+
+  req.on("end", () => {
+    const rawBody = Buffer.concat(chunks).toString("utf8");
+    if (rawBody) {
+      console.log("Raw Request Body:", rawBody);
+    }
+  });
+
+  // Intercept response
+  let responseBody: any;
+
+  res.send = function (body: any) {
+    responseBody = body;
+    return originalSend.call(this, body);
+  };
+
+  res.json = function (body: any) {
+    responseBody = JSON.stringify(body, null, 2);
+    return originalJson.call(this, body);
+  };
+
+  res.end = function (chunk?: any, encoding?: any) {
+    if (chunk) {
+      responseBody = chunk.toString();
+    }
+
+    // Log response details
+    console.log("\n=== OUTGOING RESPONSE ===");
+    console.log(`[${new Date().toISOString()}] Status: ${res.statusCode}`);
+    console.log("Response Headers:", JSON.stringify(res.getHeaders(), null, 2));
+    if (responseBody) {
+      console.log("Response Body:", responseBody);
+    }
+    console.log(`Duration: ${Date.now() - startTime}ms`);
+    console.log("========================\n");
+
+    return originalEnd.call(this, chunk, encoding);
+  };
+
+  next();
+});
+
+app.use(express.json()); // Parse JSON request bodies
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+
+// Log parsed body if available
+app.use((req, _res, next) => {
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log("Parsed Request Body:", JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
+
 // Add auth middleware
-app.use(await auth());
+app.use(
+  await auth({
+    // scopesSupported: ["claudeai"]
+  })
+);
 
 // Create your MCP server
 async function getServer() {
@@ -58,6 +144,11 @@ app.post("/mcp", async (req, res) => {
 // Start the Express server
 app.listen(PORT, () => {
   console.log(`MCP server with Civic Auth running at http://localhost:${PORT}`);
-  console.log(`OAuth metadata available at http://localhost:${PORT}/.well-known/oauth-protected-resource`);
-  console.log("\nMCP clients will authenticate directly with Civic Auth!");
+  console.log("\nStandard OAuth endpoints:");
+  console.log(`  Protected Resource: http://localhost:${PORT}/.well-known/oauth-protected-resource`);
+  console.log(`  MCP Server: http://localhost:${PORT}/mcp`);
+  console.log("\nLegacy OAuth endpoints (included by default):");
+  console.log(`  OAuth Server: http://localhost:${PORT}/.well-known/oauth-authorization-server`);
+  console.log(`  Authorize: http://localhost:${PORT}/authorize`);
+  console.log(`  Token: http://localhost:${PORT}/token`);
 });
