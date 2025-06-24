@@ -10,6 +10,8 @@ export * from "./types.js";
 export * from "./constants.js";
 export * from "./client/index.js";
 export { McpServerAuth } from "./McpServerAuth.js";
+export type { StateStore, OAuthState } from "./legacy/types.js";
+export { InMemoryStateStore } from "./legacy/StateStore.js";
 
 /**
  * Express middleware that configures an MCP server to use Civic Auth

@@ -272,5 +272,30 @@ describe("auth middleware", () => {
 
       expect(response.status).toBe(404);
     });
+
+    it("should use custom state store when provided", async () => {
+      // Since we're only testing that the custom state store is passed through,
+      // we can use a simpler approach by checking if the option is properly configured
+      const mockStateStore = {
+        set: vi.fn().mockResolvedValue(undefined),
+        get: vi.fn().mockResolvedValue(null),
+        delete: vi.fn().mockResolvedValue(undefined),
+        cleanup: vi.fn().mockResolvedValue(undefined),
+      };
+
+      // Just verify the middleware accepts the stateStore option without error
+      const customApp = express();
+      const middleware = await auth({
+        enableLegacyOAuth: true,
+        stateStore: mockStateStore,
+      });
+      customApp.use(middleware);
+
+      // Verify the app was configured correctly by checking if legacy endpoints exist
+      const response = await request(customApp).get("/.well-known/oauth-authorization-server");
+      expect(response.status).toBe(200);
+
+      // The actual state store usage is tested in OAuthProxyHandler.test.ts
+    });
   });
 });

@@ -149,7 +149,7 @@ describe("LegacyOAuthRouter", () => {
 
       wellKnownHandler(mockReq, mockRes);
 
-      const metadata = mockRes.json.mock.calls[0][0];
+      const metadata = vi.mocked(mockRes.json).mock.calls[0][0];
       expect(metadata.scopes_supported).toEqual(["openid", "email", "profile"]);
     });
 

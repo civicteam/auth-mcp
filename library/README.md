@@ -143,7 +143,11 @@ app.use(await auth({
       ...authInfo,
       extra: { ...authInfo.extra, ...userData }
     };
-  }
+  },
+  
+  // Legacy OAuth options
+  enableLegacyOAuth: true, // Defaults to true
+  stateStore: customStateStore, // Custom state store for OAuth flows
 }));
 ```
 
@@ -337,6 +341,21 @@ This ensures the oauth metadata correctly generates "https" urls.
 app.enable('trust proxy');
 ```
 
+#### Custom State Store
+
+By default, the legacy OAuth mode uses an in-memory state store for managing OAuth flow state between redirects. For production deployments with multiple servers or processes, you can provide a custom state store implementation:
+
+```typescript
+// Implement a custom state store (e.g., using Redis)
+class RedisStateStore implements StateStore {
+  ...
+}
+
+// Use the custom state store
+app.use(await auth({
+  stateStore: new RedisStateStore(),
+}));
+```
 ---
 
 ## ✨ Why Choose @civic/auth-mcp?

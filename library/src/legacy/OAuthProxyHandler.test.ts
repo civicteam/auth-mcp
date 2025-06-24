@@ -35,7 +35,6 @@ describe("OAuthProxyHandler", () => {
     // Setup options
     options = {
       clientId: "test-client-id",
-      clientSecret: "test-client-secret",
     };
 
     // Create handler
@@ -373,7 +372,7 @@ describe("OAuthProxyHandler", () => {
 
   describe("error handling", () => {
     it("should handle missing URL in handleAuthorize", async () => {
-      delete mockRequest.url;
+      mockRequest.url = undefined;
 
       await handler.handleAuthorize(mockRequest as IncomingMessage, mockResponse as ServerResponse);
 
@@ -382,7 +381,7 @@ describe("OAuthProxyHandler", () => {
     });
 
     it("should handle missing URL in handleCallback", async () => {
-      delete mockRequest.url;
+      mockRequest.url = undefined;
 
       await handler.handleCallback(mockRequest as IncomingMessage, mockResponse as ServerResponse);
 
@@ -417,20 +416,20 @@ describe("OAuthProxyHandler", () => {
 
     it("should handle error in parseRequestBody", async () => {
       (mockRequest as any).body = undefined;
-      
+
       let errorCallback: ((error: any) => void) | undefined;
-      let dataCallback: ((chunk: any) => void) | undefined;
-      let endCallback: (() => void) | undefined;
-      
+      let _dataCallback: ((chunk: any) => void) | undefined;
+      let _endCallback: (() => void) | undefined;
+
       mockRequest.on = vi.fn((event: string, callback: any) => {
         if (event === "error") errorCallback = callback;
-        if (event === "data") dataCallback = callback;
-        if (event === "end") endCallback = callback;
+        if (event === "data") _dataCallback = callback;
+        if (event === "end") _endCallback = callback;
         return mockRequest as any;
       });
 
       const tokenPromise = handler.handleToken(mockRequest as IncomingMessage, mockResponse as ServerResponse);
-      
+
       // Trigger error before any data is sent
       errorCallback?.(new Error("Parse error"));
 
@@ -442,7 +441,7 @@ describe("OAuthProxyHandler", () => {
 
     it("should handle missing redirect URI in sendErrorRedirect", async () => {
       mockRequest.url = "/authorize?response_type=code&client_id=test"; // Missing redirect_uri
-      
+
       await handler.handleAuthorize(mockRequest as IncomingMessage, mockResponse as ServerResponse);
 
       expect(mockResponse.writeHead).toHaveBeenCalledWith(400, { "Content-Type": "application/json" });
@@ -457,13 +456,14 @@ describe("OAuthProxyHandler", () => {
         createdAt: Date.now(),
       });
 
-      mockRequest.url = "/oauth/callback?error=invalid_scope&error_description=Scope%20not%20allowed&error_uri=https://example.com/error&state=test-state";
-      
+      mockRequest.url =
+        "/oauth/callback?error=invalid_scope&error_description=Scope%20not%20allowed&error_uri=https://example.com/error&state=test-state";
+
       await handler.handleCallback(mockRequest as IncomingMessage, mockResponse as ServerResponse);
 
       const locationHeader = (mockResponse.writeHead as any).mock.calls[0][1].Location;
       const url = new URL(locationHeader);
-      
+
       expect(url.searchParams.get("error")).toBe("invalid_scope");
       expect(url.searchParams.get("error_description")).toBe("Scope not allowed");
       expect(url.searchParams.get("error_uri")).toBe("https://example.com/error");
@@ -473,12 +473,12 @@ describe("OAuthProxyHandler", () => {
   describe("parseRequestBody edge cases", () => {
     it("should handle empty body", async () => {
       (mockRequest as any).body = undefined;
-      
-      let dataCallback: ((chunk: any) => void) | undefined;
+
+      let _dataCallback: ((chunk: any) => void) | undefined;
       let endCallback: (() => void) | undefined;
-      
+
       mockRequest.on = vi.fn((event: string, callback: any) => {
-        if (event === "data") dataCallback = callback;
+        if (event === "data") _dataCallback = callback;
         if (event === "end") endCallback = callback;
         return mockRequest as any;
       });
@@ -495,7 +495,7 @@ describe("OAuthProxyHandler", () => {
 
     it("should handle URLSearchParams parse error", async () => {
       (mockRequest as any).body = undefined;
-      
+
       // Mock URLSearchParams to throw
       const originalURLSearchParams = global.URLSearchParams;
       global.URLSearchParams = vi.fn().mockImplementation(() => {
@@ -504,7 +504,7 @@ describe("OAuthProxyHandler", () => {
 
       let dataCallback: ((chunk: any) => void) | undefined;
       let endCallback: (() => void) | undefined;
-      
+
       mockRequest.on = vi.fn((event: string, callback: any) => {
         if (event === "data") dataCallback = callback;
         if (event === "end") endCallback = callback;
@@ -532,15 +532,40 @@ describe("OAuthProxyHandler", () => {
       // Add protocol property to simulate Express request
       (mockRequest as any).protocol = "https";
       mockRequest.url = "/authorize?response_type=code&client_id=test&redirect_uri=http://localhost:8080/callback";
-      
+
       await handler.handleAuthorize(mockRequest as IncomingMessage, mockResponse as ServerResponse);
 
       expect(mockResponse.writeHead).toHaveBeenCalledWith(302, expect.any(Object));
       const locationHeader = (mockResponse.writeHead as any).mock.calls[0][1].Location;
       const url = new URL(locationHeader);
-      
+
       // Should use https from Express protocol
       expect(url.searchParams.get("redirect_uri")).toBe("https://localhost:3000/oauth/callback");
+    });
+  });
+
+  describe("custom state store", () => {
+    it("should use custom state store when provided", async () => {
+      const mockStateStore = {
+        set: vi.fn().mockResolvedValue(undefined),
+        get: vi.fn().mockResolvedValue(null),
+        delete: vi.fn().mockResolvedValue(undefined),
+      };
+
+      const customHandler = new OAuthProxyHandler({ ...options, stateStore: mockStateStore }, oidcConfig);
+
+      mockRequest.url = "/authorize?response_type=code&client_id=test&redirect_uri=http://localhost:8080/callback";
+
+      await customHandler.handleAuthorize(mockRequest as IncomingMessage, mockResponse as ServerResponse);
+
+      // Verify custom state store was used
+      expect(mockStateStore.set).toHaveBeenCalled();
+      const [stateKey, stateData] = mockStateStore.set.mock.calls[0];
+      expect(stateKey).toBeTruthy();
+      expect(stateData).toMatchObject({
+        redirectUri: "http://localhost:8080/callback",
+        clientId: "test",
+      });
     });
   });
 });
