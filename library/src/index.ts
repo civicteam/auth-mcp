@@ -2,13 +2,7 @@ import { Router } from "express";
 import type { Request, RequestHandler } from "express";
 import { McpServerAuth } from "./McpServerAuth.js";
 import { DEFAULT_MCP_ROUTE } from "./constants";
-import { OAuthProxyHandler } from "./legacy/OAuthProxyHandler.js";
-import {
-  LEGACY_GRANT_TYPES,
-  LEGACY_OAUTH_PATHS,
-  LEGACY_RESPONSE_TYPES,
-  LEGACY_TOKEN_AUTH_METHODS,
-} from "./legacy/constants.js";
+import { LegacyOAuthRouter } from "./legacy/LegacyOAuthRouter.js";
 import { AuthenticationError } from "./types.js";
 import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } from "./types.js";
 
@@ -47,9 +41,6 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
   // @ts-expect-error - Accessing protected property for legacy compatibility
   const oidcConfig = mcpServerAuth.oidcConfig as OIDCWellKnownConfiguration;
 
-  // Initialize OAuth handler if legacy mode is enabled
-  const oauthHandler = enableLegacyOAuth ? new OAuthProxyHandler(options, oidcConfig) : null;
-
   // Create router
   const router = Router();
 
@@ -63,47 +54,9 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
   });
 
   // Legacy OAuth endpoints
-  if (enableLegacyOAuth && oauthHandler) {
-    // OAuth Authorization Server Metadata (legacy)
-    router.get(LEGACY_OAUTH_PATHS.WELL_KNOWN, (req, res) => {
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
-      const metadata = {
-        issuer: baseUrl,
-        authorization_endpoint: `${baseUrl}${LEGACY_OAUTH_PATHS.AUTHORIZE}`,
-        token_endpoint: `${baseUrl}${LEGACY_OAUTH_PATHS.TOKEN}`,
-        registration_endpoint: oidcConfig.registration_endpoint
-          ? `${baseUrl}${LEGACY_OAUTH_PATHS.REGISTER}`
-          : undefined,
-        scopes_supported: options.scopesSupported || oidcConfig.scopes_supported || [],
-        response_types_supported: LEGACY_RESPONSE_TYPES,
-        grant_types_supported: LEGACY_GRANT_TYPES,
-        token_endpoint_auth_methods_supported: LEGACY_TOKEN_AUTH_METHODS,
-        code_challenge_methods_supported: ["S256", "plain"],
-      };
-      res.json(metadata);
-    });
-
-    // Authorization endpoint
-    router.get(LEGACY_OAUTH_PATHS.AUTHORIZE, async (req, res) => {
-      await oauthHandler.handleAuthorize(req, res);
-    });
-
-    // OAuth callback
-    router.get("/oauth/callback", async (req, res) => {
-      await oauthHandler.handleCallback(req, res);
-    });
-
-    // Token endpoint
-    router.post(LEGACY_OAUTH_PATHS.TOKEN, async (req, res) => {
-      await oauthHandler.handleToken(req, res);
-    });
-
-    // Registration endpoint
-    if (oidcConfig.registration_endpoint) {
-      router.post(LEGACY_OAUTH_PATHS.REGISTER, async (req, res) => {
-        await oauthHandler.handleRegistration(req, res);
-      });
-    }
+  if (enableLegacyOAuth) {
+    const legacyOAuthRouter = new LegacyOAuthRouter(options, oidcConfig);
+    router.use(legacyOAuthRouter.createRouter());
   }
 
   // Token validation middleware - only apply to mcpRoute
@@ -114,14 +67,7 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
     }
 
     // Skip auth for legacy OAuth endpoints
-    if (
-      enableLegacyOAuth &&
-      (req.path === LEGACY_OAUTH_PATHS.WELL_KNOWN ||
-        req.path === LEGACY_OAUTH_PATHS.AUTHORIZE ||
-        req.path === LEGACY_OAUTH_PATHS.TOKEN ||
-        req.path === LEGACY_OAUTH_PATHS.REGISTER ||
-        req.path === "/oauth/callback")
-    ) {
+    if (enableLegacyOAuth && LegacyOAuthRouter.getOAuthPaths().includes(req.path)) {
       return next();
     }
 

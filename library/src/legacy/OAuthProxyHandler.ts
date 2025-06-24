@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Request } from "express";
 import type { ExtendedAuthInfo, OIDCWellKnownConfiguration } from "../types.js";
 import { InMemoryStateStore } from "./StateStore.js";
 import { OAUTH_ERRORS } from "./constants.js";
@@ -30,7 +29,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
   /**
    * Handle authorization endpoint requests
    */
-  async handleAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  async handleAuthorize(req: TRequest, res: ServerResponse): Promise<void> {
     try {
       if (!req.url) {
         throw new Error("Request URL is missing");
@@ -115,7 +114,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
   /**
    * Handle OAuth callback from auth server
    */
-  async handleCallback(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  async handleCallback(req: TRequest, res: ServerResponse): Promise<void> {
     try {
       if (!req.url) {
         throw new Error("Request URL is missing");
@@ -149,6 +148,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
         return this.sendErrorRedirect(res, stateData.redirectUri, {
           error: error,
           error_description: params.get("error_description") || undefined,
+          error_uri: params.get("error_uri") || undefined,
           state: stateData.clientState,
         });
       }
@@ -180,14 +180,14 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
   /**
    * Handle token endpoint requests
    */
-  async handleToken(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  async handleToken(req: TRequest, res: ServerResponse): Promise<void> {
     try {
       let tokenRequest: TokenRequest;
-      
+
       // Check if Express has already parsed the body
-      if ('body' in req && (req as any).body) {
+      if ("body" in req && req.body) {
         // Express has parsed the body (likely as JSON)
-        tokenRequest = (req as any).body;
+        tokenRequest = req.body as TokenRequest;
       } else {
         // Parse as form-encoded
         const body = await this.parseRequestBody(req);
@@ -248,7 +248,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
   /**
    * Handle registration endpoint requests
    */
-  async handleRegistration(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  async handleRegistration(req: TRequest, res: ServerResponse): Promise<void> {
     try {
       if (!this.oidcConfig.registration_endpoint) {
         res.writeHead(404, { "Content-Type": "application/json" });
@@ -256,25 +256,30 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
         return;
       }
 
-      let body: string;
-      
+      let bodyObj: { scope?: string };
+
       // Check if Express has already parsed the body
-      if ('body' in req && (req as any).body) {
+      if ("body" in req && req.body) {
         // Express has already parsed the body
-        body = JSON.stringify((req as any).body);
+        bodyObj = req.body as { scope?: string };
       } else {
         // Need to read the raw body
         const contentType = req.headers["content-type"] || "";
-        
+
         if (contentType.includes("application/json")) {
           // For JSON requests, read the raw body
-          body = await this.readRawBody(req);
+          const rawBody = await this.readRawBody(req);
+          bodyObj = JSON.parse(rawBody);
         } else {
           // For form-encoded, parse and reconstruct
           const parsed = await this.parseRequestBody(req);
-          body = JSON.stringify(Object.fromEntries(parsed));
+          bodyObj = Object.fromEntries(parsed);
         }
       }
+
+      // Replace the scope with the fixed set of scopes to avoid registration errors
+      console.log(`Replacing requested scopes "${bodyObj.scope}" with "openid email profile"`);
+      bodyObj.scope = "openid email profile";
 
       // Forward the registration request to the actual auth server
       const registrationResponse = await fetch(this.oidcConfig.registration_endpoint, {
@@ -282,7 +287,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
         headers: {
           "Content-Type": "application/json",
         },
-        body: body,
+        body: JSON.stringify(bodyObj),
       });
 
       const responseContentType = registrationResponse.headers.get("content-type") || "";
@@ -303,9 +308,9 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
   /**
    * Get the callback URL for the MCP server
    */
-  private getMcpCallbackUrl(req: IncomingMessage): string {
+  private getMcpCallbackUrl(req: TRequest): string {
     // Express adds protocol property, otherwise default to http
-    const protocol = "protocol" in req ? (req as Request).protocol : "http";
+    const protocol = "protocol" in req ? req.protocol : "http";
     const host = req.headers.host;
     return `${protocol}://${host}/oauth/callback`;
   }
@@ -346,7 +351,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
   /**
    * Parse request body from incoming request
    */
-  private async parseRequestBody(req: IncomingMessage): Promise<URLSearchParams> {
+  private async parseRequestBody(req: TRequest): Promise<URLSearchParams> {
     return new Promise((resolve, reject) => {
       let body = "";
       req.on("data", (chunk) => {
@@ -366,7 +371,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
   /**
    * Read raw body from request
    */
-  private async readRawBody(req: IncomingMessage): Promise<string> {
+  private async readRawBody(req: TRequest): Promise<string> {
     return new Promise((resolve, reject) => {
       let body = "";
       req.on("data", (chunk) => {

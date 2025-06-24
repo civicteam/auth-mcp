@@ -3,7 +3,6 @@ import type { OAuthState, StateStore } from "./types.js";
 
 /**
  * In-memory implementation of OAuth state store
- * For production use, consider Redis or another persistent store
  */
 export class InMemoryStateStore implements StateStore {
   private states: Map<string, OAuthState> = new Map();
