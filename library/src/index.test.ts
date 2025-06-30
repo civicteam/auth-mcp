@@ -2,7 +2,7 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SCOPES } from "./constants.js";
-import { McpServerAuth, auth } from "./index.js";
+import { auth, McpServerAuth } from "./index.js";
 import { AuthenticationError, JWTVerificationError } from "./types.js";
 
 let mockGetProtectedResourceMetadata: any;

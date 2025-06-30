@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { ExtendedAuthInfo, OIDCWellKnownConfiguration } from "../types.js";
-import { InMemoryStateStore } from "./StateStore.js";
 import { OAUTH_ERRORS } from "./constants.js";
+import { InMemoryStateStore } from "./StateStore.js";
 import type {
   AuthorizationRequest,
   LegacyOAuthOptions,

@@ -1,7 +1,7 @@
 import { jwtVerify } from "jose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { McpServerAuth } from "./McpServerAuth.js";
 import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
+import { McpServerAuth } from "./McpServerAuth.js";
 import { JWTVerificationError } from "./types.js";
 
 // Mock fetch globally
