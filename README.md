@@ -42,6 +42,25 @@ pnpm test
 pnpm lint
 ```
 
+## 🔒 Security Auditing
+
+This project uses `audit-ci` for dependency vulnerability scanning in CI/CD. To manage security vulnerabilities:
+
+- **Configuration**: Edit `audit-ci.jsonc` to add vulnerabilities to the allowlist
+- **Run audit**: `pnpm run audit:ci` (fails on moderate+ vulnerabilities not in allowlist)
+- **CI/CD**: Security audit runs automatically on all PRs and pushes to main
+
+To allowlist a vulnerability, add its identifier to `audit-ci.jsonc`:
+```jsonc
+{
+  "allowlist": [
+    "GHSA-xxxx-xxxx-xxxx",  // GitHub Security Advisory
+    "CVE-2024-xxxxx",       // CVE identifier
+    "1234567"               // NPM advisory ID
+  ]
+}
+```
+
 ## 📚 Documentation
 
 Full documentation and usage examples are available in the [`library/`](./library/) package.
