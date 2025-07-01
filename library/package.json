@@ -59,7 +59,7 @@
     "lint:check": "biome check src/"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.13.2",
+    "@modelcontextprotocol/sdk": "^1.13.3",
     "escape-html": "^1.0.3",
     "jose": "^6.0.11"
   },
