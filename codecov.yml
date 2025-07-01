@@ -26,6 +26,7 @@ ignore:
   - "**/test/**"
   - "**/tests/**"
   - "**/examples/**"
+  - "library/src/test-utils/generateKeyAndJWT.ts"
 
 comment:
   layout: "reach,diff,flags,tree"

@@ -1,4 +1,4 @@
-import { jwtVerify } from "jose";
+import { createLocalJWKSet, createRemoteJWKSet, jwtVerify } from "jose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
 import { McpServerAuth } from "./McpServerAuth.js";
@@ -10,6 +10,7 @@ global.fetch = vi.fn();
 // Mock jose module
 vi.mock("jose", () => ({
   createRemoteJWKSet: vi.fn(() => "mockJWKS"),
+  createLocalJWKSet: vi.fn(() => "mockLocalJWKS"),
   jwtVerify: vi.fn(),
 }));
 
@@ -560,6 +561,114 @@ describe("McpServerAuth", () => {
           sub: "user123",
         },
       });
+    });
+  });
+
+  describe("local JWKS", () => {
+    const mockJWKS = {
+      keys: [
+        {
+          kty: "RSA",
+          kid: "test-key-1",
+          use: "sig",
+          alg: "RS256",
+          n: "test-n-value",
+          e: "AQAB",
+        },
+      ],
+    };
+
+    it("should use local JWKS when provided in options", async () => {
+      const auth = await McpServerAuth.init({ jwks: mockJWKS });
+
+      expect(auth).toBeInstanceOf(McpServerAuth);
+      // Verify OIDC config was still fetched
+      expect(global.fetch).toHaveBeenCalledWith(DEFAULT_WELLKNOWN_URL);
+    });
+
+    it("should not call createRemoteJWKSet when local JWKS is provided", async () => {
+      vi.clearAllMocks();
+      await McpServerAuth.init({ jwks: mockJWKS });
+
+      expect(createLocalJWKSet).toHaveBeenCalledWith(mockJWKS);
+      expect(createRemoteJWKSet).not.toHaveBeenCalled();
+    });
+
+    it("should still fetch OIDC config when using local JWKS", async () => {
+      const customUrl = "https://custom.auth.com/.well-known/openid-configuration";
+      await McpServerAuth.init({
+        wellKnownUrl: customUrl,
+        jwks: mockJWKS,
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(customUrl);
+    });
+
+    it("should work with custom client ID and local JWKS", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "custom-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({
+        clientId: "custom-client-id",
+        jwks: mockJWKS,
+      });
+
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(authInfo).toEqual({
+        token: "valid.jwt.token",
+        clientId: "custom-client-id",
+        scopes: [DEFAULT_SCOPES[0]],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      });
+    });
+
+    it("should verify JWT with local JWKS", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES.join(" "),
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({ jwks: mockJWKS });
+
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer test.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(jwtVerify).toHaveBeenCalledWith(
+        "test.jwt.token",
+        "mockLocalJWKS", // The mocked local JWKS
+        { issuer: mockOidcConfig.issuer }
+      );
+
+      expect(authInfo.token).toBe("test.jwt.token");
     });
   });
 });
