@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
+import { createLocalJWKSet, createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
 import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
 import {
   type AccessTokenPayload,
@@ -81,13 +81,19 @@ const verifyClientId = (payload: AccessTokenPayload, expectedClientId: string | 
  */
 export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage> {
   protected oidcConfig: OIDCWellKnownConfiguration;
-  protected jwks: ReturnType<typeof createRemoteJWKSet>;
+  protected jwks: ReturnType<typeof createRemoteJWKSet> | ReturnType<typeof createLocalJWKSet>;
   protected options: CivicAuthOptions<TAuthInfo, TRequest>;
 
   protected constructor(oidcConfig: OIDCWellKnownConfiguration, options: CivicAuthOptions<TAuthInfo, TRequest>) {
     this.oidcConfig = oidcConfig;
     this.options = options;
-    this.jwks = createRemoteJWKSet(new URL(oidcConfig.jwks_uri));
+
+    // Use local JWKS if provided, otherwise fetch from remote
+    if (options.jwks) {
+      this.jwks = createLocalJWKSet(options.jwks);
+    } else {
+      this.jwks = createRemoteJWKSet(new URL(oidcConfig.jwks_uri));
+    }
   }
 
   /**

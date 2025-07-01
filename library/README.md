@@ -358,6 +358,26 @@ app.use(await auth({
 ```
 ---
 
+## Configuration
+
+The `auth()` middleware accepts the following configuration options:
+
+| Option                           | Type            | Default                                                         | Description                                            |
+|----------------------------------|-----------------|-----------------------------------------------------------------|--------------------------------------------------------|
+| `clientId`                       | `string`        | Public Civic client ID                                          | OAuth client ID / Tenant ID for token validation       |
+| `wellKnownUrl`                   | `string`        | `https://auth.civic.com/oauth/.well-known/openid-configuration` | URL to the auth server's OIDC configuration            |
+| `scopesSupported`                | `string[]`      | `['openid', 'profile', 'email']`                                | OAuth scopes to support                                |
+| `issuerUrl`                      | `string \| URL` | Server's base URL                                               | Issuer URL for the resource server                     |
+| `basePath`                       | `string`        | `/`                                                             | Base path for auth endpoints                           |
+| `mcpRoute`                       | `string`        | `/mcp`                                                          | The MCP route to protect with authentication           |
+| `onLogin`                        | `function`      | -                                                               | Optional callback to enrich auth info with custom data |
+| `allowDynamicClientRegistration` | `boolean`       | `false`                                                         | Enable dynamic client registration                     |
+| `enableLegacyOAuth`              | `boolean`       | `true`                                                          | Enable legacy OAuth proxy mode (deprecated)            |
+| `stateStore`                     | `StateStore`    | In-memory store                                                 | Custom state store for OAuth flow (legacy mode only)   |
+| `jwks`                           | `object`        | -                                                               | Local JWKS for testing (bypasses remote JWKS fetch)    |
+
+---
+
 ## ✨ Why Choose @civic/auth-mcp?
 
 **🚀 Zero-Friction Setup**

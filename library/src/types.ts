@@ -74,6 +74,21 @@ export interface CivicAuthOptions<
    * Defaults to in-memory store.
    */
   stateStore?: StateStore;
+
+  /**
+   * Optional JSON Web Key Set for local JWT verification.
+   * When provided, these keys will be used instead of fetching from the OIDC jwks_uri.
+   * Useful for testing or air-gapped environments.
+   */
+  jwks?: {
+    keys: Array<{
+      kty: string;
+      kid?: string;
+      use?: string;
+      alg?: string;
+      [key: string]: unknown;
+    }>;
+  };
 }
 
 export interface OIDCWellKnownConfiguration {
