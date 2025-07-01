@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import { type JWTPayload, createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
 import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
 import {
   type AccessTokenPayload,

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
+  // Fail on moderate, high, and critical vulnerabilities
+  "moderate": true,
+  // Allowlist specific vulnerabilities by their identifiers
+  "allowlist": [
+    // Example entries - replace with actual vulnerability IDs you want to ignore
+    // "GHSA-42xw-2xvc-qx8m", // Example: Some vulnerability in dev dependency
+    // "CVE-2023-12345", // Example: Known CVE that doesn't affect your usage
+    // "1234567" // Example: NPM advisory ID
+  ]
+}

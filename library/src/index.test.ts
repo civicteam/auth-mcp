@@ -2,7 +2,7 @@ import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SCOPES } from "./constants.js";
-import { McpServerAuth, auth } from "./index.js";
+import { auth, McpServerAuth } from "./index.js";
 import { AuthenticationError, JWTVerificationError } from "./types.js";
 
 let mockGetProtectedResourceMetadata: any;
@@ -12,10 +12,18 @@ let mockHandleRequest: any;
 // Mock OAuthProxyHandler
 vi.mock("./legacy/OAuthProxyHandler.js", () => ({
   OAuthProxyHandler: vi.fn().mockImplementation(() => ({
-    handleAuthorize: vi.fn(),
-    handleCallback: vi.fn(),
-    handleToken: vi.fn(),
-    handleRegistration: vi.fn(),
+    handleAuthorize: vi.fn().mockImplementation((_req, res) => {
+      res.redirect(302, "https://auth.civic.com/oauth/authorize");
+    }),
+    handleCallback: vi.fn().mockImplementation((_req, res) => {
+      res.status(400).json({ error: "invalid_request" });
+    }),
+    handleToken: vi.fn().mockImplementation((_req, res) => {
+      res.status(400).json({ error: "invalid_request" });
+    }),
+    handleRegistration: vi.fn().mockImplementation((_req, res) => {
+      res.status(400).json({ error: "invalid_request" });
+    }),
   })),
 }));
 
@@ -199,6 +207,39 @@ describe("auth middleware", () => {
         error: "authentication_error",
         error_description: '"exp" claim timestamp check failed',
       });
+    });
+
+    it("should return 500 for unknown errors", async () => {
+      // Mock handleRequest to throw a non-authentication error
+      mockHandleRequest.mockRejectedValue(new Error("Unknown database error"));
+
+      const response = await request(app).get("/mcp/test").set("Authorization", "Bearer valid.jwt.token").expect(500);
+
+      expect(mockHandleRequest).toHaveBeenCalledWith(expect.any(Object));
+      expect(response.body).toEqual({
+        error: "internal_error",
+        error_description: "An unexpected error occurred",
+      });
+    });
+
+    it("should skip auth for legacy OAuth endpoints", async () => {
+      // Test a legacy OAuth endpoint - /authorize should redirect
+      mockHandleRequest.mockClear();
+
+      // The /authorize endpoint should redirect without authentication
+      await request(app)
+        .get("/authorize")
+        .query({ client_id: "test", redirect_uri: "http://localhost:3000/callback" })
+        .expect(302);
+
+      // Should not call handleRequest for legacy OAuth endpoints
+      expect(mockHandleRequest).not.toHaveBeenCalled();
+
+      // Test another endpoint - /token should return 400 without proper params
+      mockHandleRequest.mockClear();
+      await request(app).post("/token").expect(400);
+
+      expect(mockHandleRequest).not.toHaveBeenCalled();
     });
   });
 

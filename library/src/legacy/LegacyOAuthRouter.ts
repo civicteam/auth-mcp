@@ -1,13 +1,13 @@
-import { Router } from "express";
 import type { Request, Response } from "express";
+import { Router } from "express";
 import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } from "../types.js";
-import { OAuthProxyHandler } from "./OAuthProxyHandler.js";
 import {
   LEGACY_GRANT_TYPES,
   LEGACY_OAUTH_PATHS,
   LEGACY_RESPONSE_TYPES,
   LEGACY_TOKEN_AUTH_METHODS,
 } from "./constants.js";
+import { OAuthProxyHandler } from "./OAuthProxyHandler.js";
 
 /**
  * Creates a router with legacy OAuth endpoints for backward compatibility

@@ -1,17 +1,17 @@
-import { Router } from "express";
 import type { Request, RequestHandler } from "express";
-import { McpServerAuth } from "./McpServerAuth.js";
+import { Router } from "express";
 import { DEFAULT_MCP_ROUTE } from "./constants";
 import { LegacyOAuthRouter } from "./legacy/LegacyOAuthRouter.js";
-import { AuthenticationError } from "./types.js";
+import { McpServerAuth } from "./McpServerAuth.js";
 import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } from "./types.js";
+import { AuthenticationError } from "./types.js";
 
-export * from "./types.js";
-export * from "./constants.js";
 export * from "./client/index.js";
-export { McpServerAuth } from "./McpServerAuth.js";
-export type { StateStore, OAuthState } from "./legacy/types.js";
+export * from "./constants.js";
 export { InMemoryStateStore } from "./legacy/StateStore.js";
+export type { OAuthState, StateStore } from "./legacy/types.js";
+export { McpServerAuth } from "./McpServerAuth.js";
+export * from "./types.js";
 
 /**
  * Express middleware that configures an MCP server to use Civic Auth
@@ -62,7 +62,7 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
   }
 
   // Token validation middleware - only apply to mcpRoute
-  router.use(async (req, res, next) => {
+  const tokenValidationMiddleware: RequestHandler = async (req, res, next) => {
     // Skip auth for metadata endpoints
     if (req.path === "/.well-known/oauth-protected-resource") {
       return next();
@@ -91,19 +91,23 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
     } catch (error) {
       if (error instanceof AuthenticationError) {
         // authentication errors e.g. jwt verification errors (expired, invalid signature, etc.) should return 401
-        return res.status(401).json({
+        res.status(401).json({
           error: "authentication_error",
           error_description: error.message,
         });
+        return;
       }
 
       // Unknown error
-      return res.status(500).json({
+      res.status(500).json({
         error: "internal_error",
         error_description: "An unexpected error occurred",
       });
+      return;
     }
-  });
+  };
+
+  router.use(tokenValidationMiddleware);
 
   return router;
 }

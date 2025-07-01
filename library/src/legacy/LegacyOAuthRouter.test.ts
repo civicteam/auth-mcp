@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import { Router } from "express";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OIDCWellKnownConfiguration } from "../types.js";
-import { LegacyOAuthRouter } from "./LegacyOAuthRouter.js";
 import { LEGACY_OAUTH_PATHS } from "./constants.js";
+import { LegacyOAuthRouter } from "./LegacyOAuthRouter.js";
 
 // Mock Express Router
 vi.mock("express", () => ({
