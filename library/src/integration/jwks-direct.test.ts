@@ -163,7 +163,7 @@ describe("JWKS Direct Integration", () => {
 
     // Mock OIDC config
     const mockOidcConfig = {
-      issuer: "https://auth.civic.com",
+      issuer: "https://auth.civic.com/oauth/",
       authorization_endpoint: "https://auth.civic.com/authorize",
       token_endpoint: "https://auth.civic.com/token",
       jwks_uri: "https://auth.civic.com/jwks", // This URL should NOT be fetched
