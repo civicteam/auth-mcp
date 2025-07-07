@@ -89,6 +89,13 @@ export interface CivicAuthOptions<
       [key: string]: unknown;
     }>;
   };
+
+  /**
+   * Whether to disable client ID verification.
+   * When true, the client_id or tid verification will be skipped.
+   * Defaults to false (verification enabled).
+   */
+  disableClientIdVerification?: boolean;
 }
 
 export interface OIDCWellKnownConfiguration {

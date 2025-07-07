@@ -434,7 +434,7 @@ describe("McpServerAuth", () => {
       });
     });
 
-    it("should not verify client ID when using custom auth server without clientId", async () => {
+    it("should throw error when using custom auth server without clientId", async () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
@@ -454,11 +454,38 @@ describe("McpServerAuth", () => {
         },
       } as any;
 
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(
+        "Client ID verification is enabled but no expected client ID was provided"
+      );
+    });
+
+    it("should work with custom auth server when clientId is provided", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "expected-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({
+        wellKnownUrl: "https://custom.auth.com/.well-known/openid-configuration",
+        clientId: "expected-client-id",
+      });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
       const authInfo = await auth.handleRequest(mockRequest);
 
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
-        clientId: "any-client-id",
+        clientId: "expected-client-id",
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
@@ -555,6 +582,103 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: PUBLIC_CIVIC_CLIENT_ID,
+        scopes: [DEFAULT_SCOPES[0]],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      });
+    });
+
+    it("should skip client ID verification when disableClientIdVerification is true", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "any-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({
+        clientId: "expected-client-id",
+        disableClientIdVerification: true,
+      });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(authInfo).toEqual({
+        token: "valid.jwt.token",
+        clientId: "any-client-id",
+        scopes: [DEFAULT_SCOPES[0]],
+        expiresAt: 1234567890,
+        extra: {
+          sub: "user123",
+        },
+      });
+    });
+
+    it("should throw error when client ID verification is enabled but no expected client ID is provided", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "any-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({
+        wellKnownUrl: "https://custom.auth.com/.well-known/openid-configuration",
+        disableClientIdVerification: false,
+      });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(
+        "Client ID verification is enabled but no expected client ID was provided"
+      );
+    });
+
+    it("should work with disableClientIdVerification=true and custom auth server", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "different-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({
+        wellKnownUrl: "https://custom.auth.com/.well-known/openid-configuration",
+        disableClientIdVerification: true,
+      });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      const authInfo = await auth.handleRequest(mockRequest);
+
+      expect(authInfo).toEqual({
+        token: "valid.jwt.token",
+        clientId: "different-client-id",
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {

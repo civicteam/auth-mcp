@@ -64,7 +64,9 @@ const getAuthServer = <TAuthInfo extends ExtendedAuthInfo, TRequest extends Inco
  * @param expectedClientId The expected client ID to match against
  */
 const verifyClientId = (payload: AccessTokenPayload, expectedClientId: string | undefined) => {
-  if (!expectedClientId) return;
+  if (!expectedClientId) {
+    throw new AuthenticationError("Client ID verification is enabled but no expected client ID was provided");
+  }
 
   // Check if either the client_id or tid matches the expected client ID
   // At least one of them must match
@@ -180,7 +182,9 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
         issuer: this.oidcConfig.issuer,
       });
 
-      verifyClientId(payload, getExpectedClientId(this.options));
+      if (!(this.options.disableClientIdVerification ?? false)) {
+        verifyClientId(payload, getExpectedClientId(this.options));
+      }
 
       return { token, payload };
     } catch (error) {
