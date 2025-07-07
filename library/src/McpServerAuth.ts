@@ -156,7 +156,12 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
 
     // Call onLogin if provided - it can create or enrich auth info
     // If authInfo is null, onLogin might create it from request headers
-    return this.options.onLogin(inputAuthInfo, request);
+    try {
+      return await this.options.onLogin(inputAuthInfo, request);
+    } catch {
+      // Convert all onLogin exceptions to AuthenticationError to ensure 401 response
+      throw new AuthenticationError("Authentication failed");
+    }
   }
 
   /**

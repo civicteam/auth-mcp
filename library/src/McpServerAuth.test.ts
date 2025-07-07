@@ -2,7 +2,7 @@ import { createLocalJWKSet, createRemoteJWKSet, jwtVerify } from "jose";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
 import { McpServerAuth } from "./McpServerAuth.js";
-import { JWTVerificationError } from "./types.js";
+import { AuthenticationError, JWTVerificationError } from "./types.js";
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -340,7 +340,41 @@ describe("McpServerAuth", () => {
         },
       } as any;
 
-      await expect(auth.handleRequest(mockRequest)).rejects.toThrow("Database connection failed");
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(AuthenticationError);
+      await expect(auth.handleRequest(mockRequest)).rejects.toMatchObject({
+        message: "Authentication failed",
+      });
+    });
+
+    it("should convert onLogin exceptions to AuthenticationError to return 401 instead of 500", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const onLoginCallback = vi.fn(async () => {
+        throw new Error("Database connection failed");
+      });
+
+      const auth = await McpServerAuth.init({ onLogin: onLoginCallback });
+      const mockRequest = {
+        headers: {
+          authorization: "Bearer valid.jwt.token",
+        },
+      } as any;
+
+      // This test demonstrates the bug - onLogin exceptions should be converted to AuthenticationError
+      // Currently this will fail because the raw error is thrown instead of being wrapped
+      await expect(auth.handleRequest(mockRequest)).rejects.toThrow(AuthenticationError);
+      await expect(auth.handleRequest(mockRequest)).rejects.toMatchObject({
+        message: "Authentication failed",
+      });
     });
 
     it("should handle non-Bearer authorization headers", async () => {
