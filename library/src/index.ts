@@ -48,7 +48,8 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
 
   // Expose OAuth Protected Resource Metadata
   // This tells MCP clients where to authenticate
-  router.get("/.well-known/oauth-protected-resource", (req, res) => {
+  // Handle all routes starting with /.well-known/oauth-protected-resource
+  router.use("/.well-known/oauth-protected-resource", (req, res) => {
     const issuerUrl = options.issuerUrl || `${req.protocol}://${req.get("host")}`;
     const issuerUrlString = typeof issuerUrl === "string" ? issuerUrl : issuerUrl.toString();
     const metadata = mcpServerAuth.getProtectedResourceMetadata(issuerUrlString);
