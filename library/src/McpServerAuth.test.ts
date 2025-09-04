@@ -48,14 +48,14 @@ describe("McpServerAuth", () => {
       expect(auth).toBeInstanceOf(McpServerAuth);
     });
 
-    it("should use custom client ID subdomain when dynamic registration is enabled", async () => {
+    it("should use custom client ID in path when dynamic registration is enabled", async () => {
       const auth = await McpServerAuth.init({
         clientId: "custom-client-id",
         allowDynamicClientRegistration: true,
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "https://custom-client-id.auth.civic.com/oauth/.well-known/openid-configuration"
+        "https://auth.civic.com/oauth/custom-client-id/.well-known/openid-configuration"
       );
       expect(auth).toBeInstanceOf(McpServerAuth);
     });
@@ -83,11 +83,11 @@ describe("McpServerAuth", () => {
       expect(auth).toBeInstanceOf(McpServerAuth);
     });
 
-    it("should use public client ID subdomain when dynamic registration is enabled without custom client", async () => {
+    it("should use public client ID in path when dynamic registration is enabled without custom client", async () => {
       const auth = await McpServerAuth.init({ allowDynamicClientRegistration: true });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        `https://${PUBLIC_CIVIC_CLIENT_ID}.auth.civic.com/oauth/.well-known/openid-configuration`
+        `https://auth.civic.com/oauth/${PUBLIC_CIVIC_CLIENT_ID}/.well-known/openid-configuration`
       );
       expect(auth).toBeInstanceOf(McpServerAuth);
     });
