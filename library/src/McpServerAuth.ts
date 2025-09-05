@@ -34,7 +34,7 @@ const getExpectedClientId = <TAuthInfo extends ExtendedAuthInfo, TRequest extend
 
 /**
  * Get the auth server URL based on the options provided.
- * This adds tenant-specific information via the subdomain if using Civic Auth and dynamic client registration is enabled.
+ * This adds tenant-specific information via the path if using Civic Auth and dynamic client registration is enabled.
  */
 const getAuthServer = <TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage>(
   options: CivicAuthOptions<TAuthInfo, TRequest>
@@ -42,13 +42,13 @@ const getAuthServer = <TAuthInfo extends ExtendedAuthInfo, TRequest extends Inco
   // if the wellknown url is explicitly set to something other than Civic, just use that
   if (options.wellKnownUrl && options.wellKnownUrl !== DEFAULT_WELLKNOWN_URL) return options.wellKnownUrl;
 
-  // If dynamic client registration is enabled, adapt the URL with subdomain
+  // If dynamic client registration is enabled, adapt the URL with client ID in the path
   if (options.allowDynamicClientRegistration) {
     const clientId = getExpectedClientId(options) ?? PUBLIC_CIVIC_CLIENT_ID;
-    return DEFAULT_WELLKNOWN_URL.replace("https://", `https://${clientId}.`);
+    return DEFAULT_WELLKNOWN_URL.replace("/oauth/", `/oauth/${clientId}/`);
   }
 
-  // Default behavior: use the URL as-is without subdomain
+  // Default behavior: use the URL as-is without modification
   return DEFAULT_WELLKNOWN_URL;
 };
 
