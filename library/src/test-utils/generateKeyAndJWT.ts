@@ -8,12 +8,16 @@ import { generateTestSetup } from "./jwt-test-helpers.js";
 
 async function main() {
   // Generate key pair and JWT
-  const { jwks, jwt } = await generateTestSetup();
+  const { jwks, jwt, privateKey } = await generateTestSetup();
 
   console.log("=== Generated Test Keys and JWT ===\n");
 
   console.log("JWKS:");
   console.log(JSON.stringify(jwks, null, 2));
+  console.log("\n");
+
+  console.log("Private Key (PEM format):");
+  console.log(privateKey);
   console.log("\n");
 
   console.log("JWT (valid for 10 years):");

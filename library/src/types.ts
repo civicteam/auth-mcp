@@ -96,6 +96,13 @@ export interface CivicAuthOptions<
    * Defaults to false (verification enabled).
    */
   disableClientIdVerification?: boolean;
+
+  /**
+   *  If true, forces all metadata URLs to use https even if the incoming request is http.
+   *  This is useful when sitting behind a proxy that terminates SSL.
+   *  Defaults to false.
+   */
+  forceHttps?: boolean;
 }
 
 export interface OIDCWellKnownConfiguration {

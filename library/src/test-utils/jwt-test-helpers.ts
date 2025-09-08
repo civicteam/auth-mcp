@@ -1,4 +1,4 @@
-import { type CryptoKey, exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
+import { type CryptoKey, exportJWK, exportPKCS8, generateKeyPair, type JWK, SignJWT } from "jose";
 
 /**
  * Generate an RSA key pair for testing
@@ -102,8 +102,7 @@ export const generateTestJWT = async (
 export const generateTestSetup = async (
   options: { expiresIn?: number; sub?: string; clientId?: string; scope?: string; issuer?: string; kid?: string } = {}
 ): Promise<{
-  publicKey: CryptoKey;
-  privateKey: CryptoKey;
+  privateKey: string;
   jwks: {
     keys: Array<{
       kty: string;
@@ -120,9 +119,10 @@ export const generateTestSetup = async (
   const jwks = await createTestJWKS(publicKey, kid);
   const jwt = await generateTestJWT(privateKey, { ...options, kid });
 
+  const privateKeyPKCS8 = await exportPKCS8(privateKey);
+
   return {
-    publicKey,
-    privateKey,
+    privateKey: privateKeyPKCS8,
     jwks,
     jwt,
   };

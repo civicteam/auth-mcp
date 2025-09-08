@@ -4,9 +4,9 @@
   "moderate": true,
   // Allowlist specific vulnerabilities by their identifiers
   "allowlist": [
-    // Example entries - replace with actual vulnerability IDs you want to ignore
-    // "GHSA-42xw-2xvc-qx8m", // Example: Some vulnerability in dev dependency
-    // "CVE-2023-12345", // Example: Known CVE that doesn't affect your usage
-    // "1234567" // Example: NPM advisory ID
+    // The affected versions of these packages have been removed from npm
+    "GHSA-8mgj-vmr8-frr6", // debug package - false positive, affected version removed from npm
+    "GHSA-ch7m-m9rf-8gvv", // color-convert package - false positive, affected version removed from npm
+    "GHSA-m99c-cfww-cxqx"  // color-name package - false positive, affected version removed from npm
   ]
 }

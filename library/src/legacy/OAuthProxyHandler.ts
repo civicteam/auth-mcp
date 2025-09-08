@@ -309,8 +309,8 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
    * Get the callback URL for the MCP server
    */
   private getMcpCallbackUrl(req: TRequest): string {
-    // Express adds protocol property, otherwise default to http
-    const protocol = "protocol" in req ? req.protocol : "http";
+    // Express adds protocol property, otherwise default to http, unless forceHttps is set
+    const protocol = this.options.forceHttps ? "https" : "protocol" in req ? req.protocol : "http";
     const host = req.headers.host;
     return `${protocol}://${host}/oauth/callback`;
   }
