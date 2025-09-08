@@ -9,11 +9,6 @@ export interface LegacyOAuthOptions<
   TRequest extends IncomingMessage = IncomingMessage,
 > extends CivicAuthOptions<TAuthInfo, TRequest> {
   /**
-   * Enable legacy OAuth mode where MCP server acts as an OAuth server
-   */
-  enableLegacyOAuth?: boolean;
-
-  /**
    * Base URL of the MCP server (used for constructing OAuth endpoints)
    * Required when enableLegacyOAuth is true
    */
