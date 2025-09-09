@@ -12,6 +12,9 @@ import type {
   TokenRequest,
 } from "./types.js";
 
+// Handling clients that do not request scopes
+const DEFAULT_SCOPES = "openid email profile"
+
 /**
  * Handles OAuth endpoint proxying for legacy mode
  */
@@ -43,7 +46,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
         client_id: params.get("client_id") || "",
         redirect_uri: params.get("redirect_uri") || "",
         state: params.get("state") || undefined,
-        scope: params.get("scope") || undefined,
+        scope: params.get("scope") || DEFAULT_SCOPES, // Do not permit missing scopes.
         code_challenge: params.get("code_challenge") || undefined,
         code_challenge_method: params.get("code_challenge_method") || undefined,
       };
@@ -278,8 +281,8 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
       }
 
       // Replace the scope with the fixed set of scopes to avoid registration errors
-      console.log(`Replacing requested scopes "${bodyObj.scope}" with "openid email profile"`);
-      bodyObj.scope = "openid email profile";
+      console.log(`Replacing requested scopes "${bodyObj.scope}" with "${DEFAULT_SCOPES}"`);
+      bodyObj.scope = DEFAULT_SCOPES;
 
       // Forward the registration request to the actual auth server
       const registrationResponse = await fetch(this.oidcConfig.registration_endpoint, {
