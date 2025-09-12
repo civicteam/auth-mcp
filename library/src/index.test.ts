@@ -129,6 +129,11 @@ describe("auth middleware", () => {
         error: "authentication_error",
         error_description: "Authentication failed",
       });
+
+      // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
+      expect(response.headers["www-authenticate"]).toMatch(
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+      );
     });
 
     it("should reject requests with invalid authorization header", async () => {
@@ -140,6 +145,11 @@ describe("auth middleware", () => {
         error: "authentication_error",
         error_description: "Authentication failed",
       });
+
+      // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
+      expect(response.headers["www-authenticate"]).toMatch(
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+      );
     });
 
     it("should reject requests with invalid tokens", async () => {
@@ -152,6 +162,11 @@ describe("auth middleware", () => {
         error: "authentication_error",
         error_description: "Token validation failed",
       });
+
+      // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
+      expect(response.headers["www-authenticate"]).toMatch(
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+      );
     });
 
     it("should skip auth for metadata endpoint", async () => {
@@ -207,6 +222,11 @@ describe("auth middleware", () => {
         error: "authentication_error",
         error_description: '"exp" claim timestamp check failed',
       });
+
+      // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
+      expect(response.headers["www-authenticate"]).toMatch(
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+      );
     });
 
     it("should return 500 for unknown errors", async () => {

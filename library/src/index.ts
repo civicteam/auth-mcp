@@ -93,6 +93,12 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
     } catch (error) {
       if (error instanceof AuthenticationError) {
         // authentication errors e.g. jwt verification errors (expired, invalid signature, etc.) should return 401
+        // Per RFC9728 Section 5.1, include WWW-Authenticate header with resource metadata URL
+        const protocol = options.forceHttps ? "https" : req.protocol;
+        const host = req.get("host");
+        const metadataUrl = `${protocol}://${host}/.well-known/oauth-protected-resource`;
+
+        res.setHeader("WWW-Authenticate", `Bearer resource_metadata="${metadataUrl}"`);
         res.status(401).json({
           error: "authentication_error",
           error_description: error.message,
