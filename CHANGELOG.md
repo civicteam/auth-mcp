@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2025-09-12
+
+### Fixed
+- Added WWW-Authenticate header with resource_metadata parameter to 401 Unauthorized responses per RFC9728 Section 5.1
+- MCP servers now properly indicate the location of the resource server metadata URL in authentication error responses
+
 ## [0.2.5] - 2025-09-08
 
 ### Fixed
@@ -59,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version bump, readme and spec cleanup
 
+[0.2.6]: https://github.com/civicteam/auth-mcp/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/civicteam/auth-mcp/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/civicteam/auth-mcp/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/civicteam/auth-mcp/compare/v0.2.2...v0.2.3

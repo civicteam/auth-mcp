@@ -1,6 +1,6 @@
 {
   "name": "@civic/auth-mcp",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Civic Auth integration for MCP servers",
   "keywords": [
     "mcp",
