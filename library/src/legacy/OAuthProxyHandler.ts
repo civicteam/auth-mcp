@@ -13,7 +13,7 @@ import type {
 } from "./types.js";
 
 // Handling clients that do not request scopes
-const DEFAULT_SCOPES = "openid email profile"
+const DEFAULT_SCOPES = "openid email profile";
 
 /**
  * Handles OAuth endpoint proxying for legacy mode
