@@ -400,7 +400,7 @@ describe("McpServerAuth", () => {
 
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
-        clientId: "dynamic-client-id",
+        clientId: "expected-client-id",
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
