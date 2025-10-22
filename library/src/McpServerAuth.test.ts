@@ -377,7 +377,7 @@ describe("McpServerAuth", () => {
       );
     });
 
-    it("should verify tid matches expected client ID when client_id doesn't match", async () => {
+    it("should prefer tid as the expected expected client ID over client_id", async () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
