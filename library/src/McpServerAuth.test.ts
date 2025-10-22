@@ -381,7 +381,7 @@ describe("McpServerAuth", () => {
       );
     });
 
-    it("should prefer tid as the expected expected client ID over client_id", async () => {
+    it("should expect client ID to be preferred over tid", async () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
@@ -393,7 +393,7 @@ describe("McpServerAuth", () => {
         protectedHeader: {} as any,
       } as any);
 
-      const auth = await McpServerAuth.init({ clientId: "expected-client-id" });
+      const auth = await McpServerAuth.init({ clientId: "dynamic-client-id" });
       const mockRequest = {
         headers: {
           authorization: "Bearer valid.jwt.token",
