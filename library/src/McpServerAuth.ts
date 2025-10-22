@@ -145,7 +145,8 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
       token && payload
         ? {
             token,
-            clientId: (payload.tid as string) || (payload.client_id as string) || (payload.aud as string),
+            clientId: (payload.client_id as string) || (payload.aud as string),
+            tenantId: payload.tid as string | undefined,
             scopes: payload.scope ? (payload.scope as string).split(" ") : [],
             expiresAt: payload.exp,
             extra: {

@@ -120,6 +120,10 @@ export interface OIDCWellKnownConfiguration {
 }
 
 export interface ExtendedAuthInfo extends AuthInfo {
+  /**
+   * The tenant ID from the tid claim, if present
+   */
+  tenantId?: string;
   extra?: {
     sub?: string;
     email?: string;
