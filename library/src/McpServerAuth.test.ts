@@ -144,6 +144,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: PUBLIC_CIVIC_CLIENT_ID,
+        tenantId: undefined,
         scopes: DEFAULT_SCOPES.slice(0, 2),
         expiresAt: 1234567890,
         extra: {
@@ -215,6 +216,7 @@ describe("McpServerAuth", () => {
         {
           token: "valid.jwt.token",
           clientId: PUBLIC_CIVIC_CLIENT_ID,
+          tenantId: undefined,
           scopes: [DEFAULT_SCOPES[0]],
           expiresAt: 1234567890,
           extra: {
@@ -227,6 +229,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: PUBLIC_CIVIC_CLIENT_ID,
+        tenantId: undefined,
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
@@ -309,6 +312,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: PUBLIC_CIVIC_CLIENT_ID,
+        tenantId: PUBLIC_CIVIC_CLIENT_ID,
         scopes: [],
         expiresAt: 1234567890,
         extra: {
@@ -377,7 +381,7 @@ describe("McpServerAuth", () => {
       );
     });
 
-    it("should verify tid matches expected client ID when client_id doesn't match", async () => {
+    it("should expect client ID to be preferred over tid", async () => {
       vi.mocked(jwtVerify).mockResolvedValue({
         payload: {
           sub: "user123",
@@ -389,7 +393,7 @@ describe("McpServerAuth", () => {
         protectedHeader: {} as any,
       } as any);
 
-      const auth = await McpServerAuth.init({ clientId: "expected-client-id" });
+      const auth = await McpServerAuth.init({ clientId: "dynamic-client-id" });
       const mockRequest = {
         headers: {
           authorization: "Bearer valid.jwt.token",
@@ -401,6 +405,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: "dynamic-client-id",
+        tenantId: "expected-client-id",
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
@@ -486,6 +491,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: "expected-client-id",
+        tenantId: undefined,
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
@@ -550,6 +556,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: mockToken,
         clientId: payload.client_id,
+        tenantId: undefined,
         scopes: DEFAULT_SCOPES.slice(0, 2),
         expiresAt: 1234567890,
         extra: {
@@ -582,6 +589,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: PUBLIC_CIVIC_CLIENT_ID,
+        tenantId: undefined,
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
@@ -617,6 +625,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: "any-client-id",
+        tenantId: undefined,
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
@@ -679,6 +688,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: "different-client-id",
+        tenantId: undefined,
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
@@ -756,6 +766,7 @@ describe("McpServerAuth", () => {
       expect(authInfo).toEqual({
         token: "valid.jwt.token",
         clientId: "custom-client-id",
+        tenantId: undefined,
         scopes: [DEFAULT_SCOPES[0]],
         expiresAt: 1234567890,
         extra: {
