@@ -14,7 +14,7 @@
     "@civic/auth-mcp": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.13.2",
     "cors": "^2.8.5",
-    "express": "^5.1.0",
+    "express": "^5.2.0",
     "zod": "^3.25.67"
   },
   "devDependencies": {
