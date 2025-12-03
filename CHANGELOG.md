@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] - 2025-12-03
+
+### Changed
+- Updated @modelcontextprotocol/sdk from ^1.15.0 to ^1.24.1 for improved compatibility and features
+- Moved @modelcontextprotocol/sdk to devDependencies and peerDependencies in library package
+
+### Security
+- Fixed high severity vulnerability CVE-2025-64756 in glob dependency (command injection)
+- Fixed high severity vulnerability CVE-2025-66414 in @modelcontextprotocol/sdk (DNS rebinding protection)
+- Fixed moderate severity vulnerability CVE-2025-13466 in body-parser (denial of service)
+- Added pnpm overrides to enforce minimum secure versions of transitive dependencies
+
+## [0.2.7] - 2025-10-26
+
+### Changed
+- Updated dependencies and minor improvements
+
 ## [0.2.6] - 2025-09-12
 
 ### Fixed
@@ -65,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version bump, readme and spec cleanup
 
+[0.2.8]: https://github.com/civicteam/auth-mcp/compare/v0.2.7...v0.2.8
+[0.2.7]: https://github.com/civicteam/auth-mcp/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/civicteam/auth-mcp/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/civicteam/auth-mcp/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/civicteam/auth-mcp/compare/v0.2.3...v0.2.4
