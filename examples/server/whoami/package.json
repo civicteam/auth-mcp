@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "@civic/auth-mcp": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.13.2",
+    "@modelcontextprotocol/sdk": "^1.24.1",
     "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "zod": "^3.25.67"
+    "express": "^5.2.1",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
