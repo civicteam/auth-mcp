@@ -22,7 +22,7 @@
     "@biomejs/biome": "^2.0.6",
     "audit-ci": "^7.1.0",
     "turbo": "^2.5.4",
-    "vite": "7.0.8"
+    "vite": "7.2.6"
   },
   "pnpm": {
     "overrides": {
