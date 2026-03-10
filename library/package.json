@@ -1,6 +1,6 @@
 {
   "name": "@civic/auth-mcp",
-  "version": "0.2.6",
+  "version": "0.2.8",
   "description": "Civic Auth integration for MCP servers",
   "keywords": [
     "mcp",
@@ -59,11 +59,11 @@
     "lint:check": "biome check src/"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0",
     "escape-html": "^1.0.3",
     "jose": "^6.0.11"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@types/escape-html": "^1.0.4",
     "@types/express": "^5.0.3",
     "@types/node": "^24.0.7",
