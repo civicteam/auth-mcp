@@ -15,6 +15,10 @@ import type {
 // Handling clients that do not request scopes
 const DEFAULT_SCOPES = "openid email profile";
 
+// Additional scopes that MCP clients may request (e.g. Gemini CLI).
+// These are preserved during DCR if the client explicitly requests them.
+const ALLOWED_ADDITIONAL_SCOPES = ["mcp:tools"];
+
 /**
  * Handles OAuth endpoint proxying for legacy mode
  */
@@ -280,9 +284,15 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
         }
       }
 
-      // Replace the scope with the fixed set of scopes to avoid registration errors
-      console.log(`Replacing requested scopes "${bodyObj.scope}" with "${DEFAULT_SCOPES}"`);
-      bodyObj.scope = DEFAULT_SCOPES;
+      // Build the registration scope: start with defaults, then preserve any
+      // allowed additional scopes the client explicitly requested.
+      const requestedScopes = (bodyObj.scope || "").split(/\s+/).filter(Boolean);
+      const additionalScopes = requestedScopes.filter((s) =>
+        ALLOWED_ADDITIONAL_SCOPES.includes(s),
+      );
+      const finalScope = [DEFAULT_SCOPES, ...additionalScopes].join(" ");
+      console.log(`Replacing requested scopes "${bodyObj.scope}" with "${finalScope}"`);
+      bodyObj.scope = finalScope;
 
       // Forward the registration request to the actual auth server
       const registrationResponse = await fetch(this.oidcConfig.registration_endpoint, {
