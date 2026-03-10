@@ -256,7 +256,7 @@ describe("OAuthProxyHandler", () => {
       });
     });
 
-    it("should replace scope with fixed scopes", async () => {
+    it("should replace unknown scopes with defaults", async () => {
       (mockRequest as any).body = {
         client_name: "Test Client",
         redirect_uris: ["http://localhost:8080/callback"],
@@ -265,18 +265,35 @@ describe("OAuthProxyHandler", () => {
 
       await handler.handleRegistration(mockRequest as IncomingMessage, mockResponse as ServerResponse);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        "https://auth.civic.com/register",
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: expect.stringContaining('"scope":"openid email profile"'),
-        })
-      );
+      const callBody = JSON.parse((mockFetch.mock.calls[0] as any)[1].body);
+      expect(callBody.scope).toBe("openid email profile");
+    });
+
+    it("should preserve mcp:tools scope when requested", async () => {
+      (mockRequest as any).body = {
+        client_name: "Gemini CLI",
+        redirect_uris: ["http://localhost:8080/callback"],
+        scope: "openid profile mcp:tools",
+      };
+
+      await handler.handleRegistration(mockRequest as IncomingMessage, mockResponse as ServerResponse);
+
+      const callBody = JSON.parse((mockFetch.mock.calls[0] as any)[1].body);
+      expect(callBody.scope).toBe("openid email profile mcp:tools");
+    });
+
+    it("should not add mcp:tools when not requested", async () => {
+      (mockRequest as any).body = {
+        client_name: "Regular Client",
+        redirect_uris: ["http://localhost:8080/callback"],
+        scope: "openid profile email",
+      };
+
+      await handler.handleRegistration(mockRequest as IncomingMessage, mockResponse as ServerResponse);
 
       const callBody = JSON.parse((mockFetch.mock.calls[0] as any)[1].body);
       expect(callBody.scope).toBe("openid email profile");
-      expect(callBody.scopes).toBeUndefined();
+      expect(callBody.scope).not.toContain("mcp:tools");
     });
 
     it("should handle JSON body", async () => {
@@ -310,6 +327,7 @@ describe("OAuthProxyHandler", () => {
 
       expect(mockFetch).toHaveBeenCalled();
       const callBody = JSON.parse((mockFetch.mock.calls[0] as any)[1].body);
+      // "invalid scope" has no allowed additional scopes, so only defaults
       expect(callBody.scope).toBe("openid email profile");
     });
 
@@ -365,6 +383,7 @@ describe("OAuthProxyHandler", () => {
 
       expect(mockFetch).toHaveBeenCalled();
       const callBody = JSON.parse((mockFetch.mock.calls[0] as any)[1].body);
+      // "read" is not an allowed additional scope, so only defaults
       expect(callBody.scope).toBe("openid email profile");
       expect(callBody.client_name).toBe("Test Client");
     });

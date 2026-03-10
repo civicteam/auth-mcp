@@ -3,10 +3,5 @@
   // Fail on moderate, high, and critical vulnerabilities
   "moderate": true,
   // Allowlist specific vulnerabilities by their identifiers
-  "allowlist": [
-    // The affected versions of these packages have been removed from npm
-    "GHSA-8mgj-vmr8-frr6", // debug package - false positive, affected version removed from npm
-    "GHSA-ch7m-m9rf-8gvv", // color-convert package - false positive, affected version removed from npm
-    "GHSA-m99c-cfww-cxqx"  // color-name package - false positive, affected version removed from npm
-  ]
+  "allowlist": []
 }

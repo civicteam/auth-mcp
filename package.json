@@ -22,13 +22,19 @@
     "@biomejs/biome": "^2.0.6",
     "audit-ci": "^7.1.0",
     "turbo": "^2.5.4",
-    "vite": "7.0.8"
+    "vite": "7.3.1"
   },
   "pnpm": {
     "overrides": {
+      "minimatch@>=9.0.0 <9.0.7": "9.0.7",
+      "@isaacs/brace-expansion@<=5.0.0": "5.0.1",
       "glob@<11.0.1": ">=11.0.1",
+      "qs@<6.14.1": "6.14.1",
+      "rollup@>=4.0.0 <4.59.0": "4.59.0",
       "body-parser@<2.2.1": ">=2.2.1",
-      "@modelcontextprotocol/sdk@<1.24.0": ">=1.24.0"
+      "@modelcontextprotocol/sdk@<1.26.0": ">=1.26.0",
+      "minimatch@>=10.0.0 <10.2.3": "10.2.3",
+      "ajv@>=7.0.0-alpha.0 <8.18.0": "8.18.0"
     }
   },
   "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
