@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9] - 2026-03-10
+
+### Fixed
+- Preserve `mcp:tools` scope during dynamic client registration - the DCR proxy was stripping all client-requested scopes and replacing them with hardcoded defaults
+
+### Security
+- Updated @modelcontextprotocol/sdk from ^1.24.1 to ^1.26.0 (fixes SDK advisories + ajv)
+- Updated express from ^5.1.0 to ^5.2.1 (fixes body-parser, qs vulnerabilities)
+- Updated vite from 7.0.8 to 7.3.1
+- Added pnpm overrides for minimatch, @isaacs/brace-expansion, glob, rollup, and qs
+
 ## [0.2.8] - 2025-12-03
 
 ### Changed
@@ -82,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version bump, readme and spec cleanup
 
+[0.2.9]: https://github.com/civicteam/auth-mcp/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/civicteam/auth-mcp/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/civicteam/auth-mcp/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/civicteam/auth-mcp/compare/v0.2.5...v0.2.6
