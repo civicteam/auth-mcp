@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-17
+
+### Changed
+- **BREAKING:** Renamed `issuerUrl` option to `resourceUrl` — now correctly describes the RFC 9728 `resource` field
+- Resource URL is now dynamically derived from request host, Express mount path, and MCP route when `resourceUrl` is not set
+- `WWW-Authenticate` header now includes the Express mount path in the metadata URL
+- Legacy OAuth metadata URLs now include the Express mount path
+- OAuth callback URL now includes the Express mount path
+
+### Added
+- New `protocolHeader` option to read protocol from a custom header (e.g. `X-Forwarded-Proto`)
+- New `hostHeader` option to read host from a custom header (e.g. `X-Forwarded-Host`)
+- New `resolveBaseUrl` helper exported for framework-agnostic usage
+
 ## [0.2.9] - 2026-03-10
 
 ### Fixed
@@ -93,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version bump, readme and spec cleanup
 
+[0.3.0]: https://github.com/civicteam/auth-mcp/compare/v0.2.9...v0.3.0
 [0.2.9]: https://github.com/civicteam/auth-mcp/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/civicteam/auth-mcp/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/civicteam/auth-mcp/compare/v0.2.6...v0.2.7

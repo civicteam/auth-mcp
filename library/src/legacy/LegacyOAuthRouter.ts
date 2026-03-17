@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
+import { resolveBaseUrl } from "../resolveUrl.js";
 import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } from "../types.js";
 import {
   LEGACY_GRANT_TYPES,
@@ -31,8 +32,7 @@ export class LegacyOAuthRouter<TAuthInfo extends ExtendedAuthInfo> {
 
     // OAuth Authorization Server Metadata (legacy)
     router.get(LEGACY_OAUTH_PATHS.WELL_KNOWN, (req: Request, res: Response) => {
-      const protocol = this.options.forceHttps ? "https" : req.protocol;
-      const baseUrl = `${protocol}://${req.get("host")}`;
+      const baseUrl = `${resolveBaseUrl(req, this.options)}${req.baseUrl}`;
       const metadata = {
         issuer: baseUrl,
         authorization_endpoint: `${baseUrl}${LEGACY_OAUTH_PATHS.AUTHORIZE}`,

@@ -20,10 +20,22 @@ export interface CivicAuthOptions<
   scopesSupported?: string[];
 
   /**
-   * The issuer URL for the resource server
-   * Defaults to the server's base URL
+   * Optional static override for the OAuth resource URL (RFC 9728 `resource` field).
+   * If not set, derived dynamically from the request.
    */
-  issuerUrl?: string | URL;
+  resourceUrl?: string | URL;
+
+  /**
+   * Header name to read the protocol from (e.g. "X-Forwarded-Proto").
+   * Only used when resourceUrl is not set.
+   */
+  protocolHeader?: string;
+
+  /**
+   * Header name to read the host from (e.g. "X-Forwarded-Host").
+   * Defaults to "host". Only used when resourceUrl is not set.
+   */
+  hostHeader?: string;
 
   /**
    * Base path for auth endpoints

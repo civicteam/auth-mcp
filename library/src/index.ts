@@ -3,6 +3,7 @@ import { Router } from "express";
 import { DEFAULT_MCP_ROUTE } from "./constants";
 import { LegacyOAuthRouter } from "./legacy/LegacyOAuthRouter.js";
 import { McpServerAuth } from "./McpServerAuth.js";
+import { resolveBaseUrl } from "./resolveUrl.js";
 import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } from "./types.js";
 import { AuthenticationError } from "./types.js";
 
@@ -11,6 +12,8 @@ export * from "./constants.js";
 export { InMemoryStateStore } from "./legacy/StateStore.js";
 export type { OAuthState, StateStore } from "./legacy/types.js";
 export { McpServerAuth } from "./McpServerAuth.js";
+export { resolveBaseUrl } from "./resolveUrl.js";
+export type { UrlResolutionOptions } from "./resolveUrl.js";
 export * from "./types.js";
 
 /**
@@ -46,14 +49,21 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
   // Create router
   const router = Router();
 
+  // Capture the router's mount path before sub-route matching changes req.baseUrl
+  router.use((req, _res, next) => {
+    (req as any)._authMcpMountPath = req.baseUrl;
+    next();
+  });
+
   // Expose OAuth Protected Resource Metadata
   // This tells MCP clients where to authenticate
   // Handle all routes starting with /.well-known/oauth-protected-resource
   router.use("/.well-known/oauth-protected-resource", (req, res) => {
-    const protocol = options.forceHttps ? "https" : req.protocol;
-    const issuerUrl = options.issuerUrl || `${protocol}://${req.get("host")}`;
-    const issuerUrlString = typeof issuerUrl === "string" ? issuerUrl : issuerUrl.toString();
-    const metadata = mcpServerAuth.getProtectedResourceMetadata(issuerUrlString);
+    const mountPath = (req as any)._authMcpMountPath ?? "";
+    const resourceUrl = options.resourceUrl
+      ? (typeof options.resourceUrl === "string" ? options.resourceUrl : options.resourceUrl.toString())
+      : `${resolveBaseUrl(req, options)}${mountPath}${mcpRoute}`;
+    const metadata = mcpServerAuth.getProtectedResourceMetadata(resourceUrl);
     res.json(metadata);
   });
 
@@ -94,9 +104,8 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
       if (error instanceof AuthenticationError) {
         // authentication errors e.g. jwt verification errors (expired, invalid signature, etc.) should return 401
         // Per RFC9728 Section 5.1, include WWW-Authenticate header with resource metadata URL
-        const protocol = options.forceHttps ? "https" : req.protocol;
-        const host = req.get("host");
-        const metadataUrl = `${protocol}://${host}/.well-known/oauth-protected-resource`;
+        const baseUrl = resolveBaseUrl(req, options);
+        const metadataUrl = `${baseUrl}${req.baseUrl}/.well-known/oauth-protected-resource`;
 
         res.setHeader("WWW-Authenticate", `Bearer resource_metadata="${metadataUrl}"`);
         res.status(401).json({
