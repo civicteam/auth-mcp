@@ -96,10 +96,10 @@ describe("McpServerAuth", () => {
   describe("getProtectedResourceMetadata", () => {
     it("should return correct metadata with default options", async () => {
       const auth = await McpServerAuth.init();
-      const metadata = auth.getProtectedResourceMetadata("https://my-server.com");
+      const metadata = auth.getProtectedResourceMetadata("https://my-server.com/mcp");
 
       expect(metadata).toEqual({
-        resource: "https://my-server.com",
+        resource: "https://my-server.com/mcp",
         authorization_servers: ["https://auth.civic.com"],
         scopes_supported: DEFAULT_SCOPES,
         bearer_methods_supported: ["header"],
@@ -110,7 +110,7 @@ describe("McpServerAuth", () => {
       const auth = await McpServerAuth.init({
         scopesSupported: ["custom:read", "custom:write"],
       });
-      const metadata = auth.getProtectedResourceMetadata("https://my-server.com");
+      const metadata = auth.getProtectedResourceMetadata("https://my-server.com/mcp");
 
       expect(metadata.scopes_supported).toEqual(["custom:read", "custom:write"]);
     });

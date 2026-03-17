@@ -103,6 +103,8 @@ describe("LegacyOAuthRouter", () => {
       // Mock request and response
       const mockReq = {
         protocol: "https",
+        headers: { host: "example.com" },
+        baseUrl: "",
         get: vi.fn((header: string) => {
           if (header === "host") return "example.com";
           return undefined;
@@ -140,6 +142,8 @@ describe("LegacyOAuthRouter", () => {
 
       const mockReq = {
         protocol: "https",
+        headers: { host: "example.com" },
+        baseUrl: "",
         get: vi.fn(() => "example.com"),
       } as unknown as Request;
 

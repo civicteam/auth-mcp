@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { resolveBaseUrl } from "../resolveUrl.js";
 import type { ExtendedAuthInfo, OIDCWellKnownConfiguration } from "../types.js";
 import { OAUTH_ERRORS } from "./constants.js";
 import { InMemoryStateStore } from "./StateStore.js";
@@ -322,10 +323,8 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
    * Get the callback URL for the MCP server
    */
   private getMcpCallbackUrl(req: TRequest): string {
-    // Express adds protocol property, otherwise default to http, unless forceHttps is set
-    const protocol = this.options.forceHttps ? "https" : "protocol" in req ? req.protocol : "http";
-    const host = req.headers.host;
-    return `${protocol}://${host}/oauth/callback`;
+    const baseUrl = resolveBaseUrl(req, this.options);
+    return `${baseUrl}/oauth/callback`;
   }
 
   /**

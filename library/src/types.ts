@@ -20,10 +20,16 @@ export interface CivicAuthOptions<
   scopesSupported?: string[];
 
   /**
-   * The issuer URL for the resource server
-   * Defaults to the server's base URL
+   * Header name to read the protocol from (e.g. "X-Forwarded-Proto").
+   * Resolution order: forceHttps > protocolHeader > req.protocol.
    */
-  issuerUrl?: string | URL;
+  protocolHeader?: string;
+
+  /**
+   * Header name to read the host from (e.g. "X-Forwarded-Host").
+   * Defaults to the standard "host" header.
+   */
+  hostHeader?: string;
 
   /**
    * Base path for auth endpoints

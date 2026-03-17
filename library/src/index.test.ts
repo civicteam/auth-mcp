@@ -31,8 +31,8 @@ vi.mock("./legacy/OAuthProxyHandler.js", () => ({
 vi.mock("./McpServerAuth.js", () => ({
   McpServerAuth: {
     init: vi.fn().mockImplementation((_options) => {
-      mockGetProtectedResourceMetadata = vi.fn((issuerUrl) => ({
-        resource: issuerUrl,
+      mockGetProtectedResourceMetadata = vi.fn((resourceUrl) => ({
+        resource: resourceUrl,
         authorization_servers: ["https://auth.civic.com"],
         scopes_supported: ["openid", "profile", "email", "offline_access"],
         bearer_methods_supported: ["header"],
@@ -81,8 +81,8 @@ describe("auth middleware", () => {
     it("should expose protected resource metadata", async () => {
       const response = await request(app).get("/.well-known/oauth-protected-resource").expect(200);
 
-      // The resource URL will include the port from supertest
-      expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+      // The resource URL will include the port from supertest + mcpRoute
+      expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/mcp$/);
       expect(response.body.authorization_servers).toEqual(["https://auth.civic.com"]);
       expect(response.body.scopes_supported).toEqual(DEFAULT_SCOPES);
       expect(response.body.bearer_methods_supported).toEqual(["header"]);
@@ -90,13 +90,56 @@ describe("auth middleware", () => {
       expect(response.body.resource_policy_uri).toBe("https://www.civic.com/privacy-policy");
     });
 
-    it("should use custom issuerUrl if provided", async () => {
+    it("should derive resource URL dynamically with mcpRoute", async () => {
+      const response = await request(app).get("/.well-known/oauth-protected-resource").expect(200);
+
+      // Default mcpRoute is /mcp, so resource should include it
+      expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/mcp$/);
+    });
+
+    it("should include mount path when mounted at a sub-path", async () => {
+      const outerApp = express();
+      outerApp.use("/hub", await auth());
+
+      const response = await request(outerApp).get("/hub/.well-known/oauth-protected-resource").expect(200);
+
+      // Resource URL should include the mount path + mcpRoute
+      expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/hub\/mcp$/);
+    });
+
+    it("should respond to well-known with sub-path (wildcard matching)", async () => {
+      // Per RFC 9728, clients may request /.well-known/oauth-protected-resource/hub/mcp
+      // which, when rewritten to the router mount, hits /hub/.well-known/oauth-protected-resource/hub/mcp
+      const outerApp = express();
+      outerApp.use("/hub", await auth());
+
+      const response = await request(outerApp).get("/hub/.well-known/oauth-protected-resource/hub/mcp").expect(200);
+
+      expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/hub\/mcp$/);
+    });
+
+    it("should respect protocolHeader option", async () => {
       const customApp = express();
-      customApp.use(await auth({ issuerUrl: "https://custom-server.com" }));
+      customApp.use(await auth({ protocolHeader: "X-Forwarded-Proto" }));
 
-      const response = await request(customApp).get("/.well-known/oauth-protected-resource").expect(200);
+      const response = await request(customApp)
+        .get("/.well-known/oauth-protected-resource")
+        .set("X-Forwarded-Proto", "https")
+        .expect(200);
 
-      expect(response.body.resource).toBe("https://custom-server.com");
+      expect(response.body.resource).toMatch(/^https:\/\//);
+    });
+
+    it("should respect hostHeader option", async () => {
+      const customApp = express();
+      customApp.use(await auth({ hostHeader: "X-Forwarded-Host" }));
+
+      const response = await request(customApp)
+        .get("/.well-known/oauth-protected-resource")
+        .set("X-Forwarded-Host", "public.example.com")
+        .expect(200);
+
+      expect(response.body.resource).toMatch(/^http:\/\/public\.example\.com\/mcp$/);
     });
   });
 
@@ -132,7 +175,7 @@ describe("auth middleware", () => {
 
       // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
       expect(response.headers["www-authenticate"]).toMatch(
-        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource\/mcp"$/
       );
     });
 
@@ -148,7 +191,7 @@ describe("auth middleware", () => {
 
       // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
       expect(response.headers["www-authenticate"]).toMatch(
-        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource\/mcp"$/
       );
     });
 
@@ -165,7 +208,7 @@ describe("auth middleware", () => {
 
       // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
       expect(response.headers["www-authenticate"]).toMatch(
-        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource\/mcp"$/
       );
     });
 
@@ -225,7 +268,7 @@ describe("auth middleware", () => {
 
       // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
       expect(response.headers["www-authenticate"]).toMatch(
-        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource\/mcp"$/
       );
     });
 
@@ -268,12 +311,12 @@ describe("auth middleware", () => {
       const mockInit = vi.mocked(McpServerAuth.init);
 
       await auth({
-        issuerUrl: new URL("https://custom-server.com"),
+        mcpRoute: "/api",
         onLogin: vi.fn() as any,
       });
 
       expect(mockInit).toHaveBeenCalledWith({
-        issuerUrl: new URL("https://custom-server.com"),
+        mcpRoute: "/api",
         onLogin: expect.any(Function),
       });
     });

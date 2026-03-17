@@ -128,7 +128,6 @@ app.use(await auth({
   wellKnownUrl: 'https://accounts.google.com/.well-known/openid-configuration',
     
   // Or specify additional options
-  issuerUrl: 'https://my-mcp-server.com',
   scopesSupported: ['openid', 'profile', 'email', 'custom:scope'],
   
   // Protect a different route (defaults to '/mcp')
@@ -175,7 +174,7 @@ const mcpServerAuth = await McpServerAuth.init({
 // In your framework's route handler:
 // 1. Expose the protected resource metadata
 if (path === '/.well-known/oauth-protected-resource') {
-  const metadata = mcpServerAuth.getProtectedResourceMetadata('https://my-server.com');
+  const metadata = mcpServerAuth.getProtectedResourceMetadata('https://my-server.com/mcp');
   return json(metadata);
 }
 
@@ -333,13 +332,35 @@ We recommend monitoring your client usage and disabling legacy support once all 
 **NOTE** If testing with Claude (Web or Desktop), you will need to deploy your server to a remote environment using https first,
 as Claude does not support localhost MCP integrations.
 
-**NOTE** When using the legacy OAuth flow behind a _proxy_, make sure to enable the "trust proxy" setting
-in Express. See details [here](https://expressjs.com/en/guide/behind-proxies.html).
-This ensures the oauth metadata correctly generates "https" urls.
+**NOTE** When using the legacy OAuth flow behind a _proxy_, you can either enable Express's "trust proxy" setting
+(see [Express behind proxies](https://expressjs.com/en/guide/behind-proxies.html)), or configure the `protocolHeader` and `hostHeader` options
+to read the correct values from proxy headers:
 
 ```typescript
+// Option 1: Trust proxy (Express handles X-Forwarded-* headers)
 app.enable('trust proxy');
+
+// Option 2: Explicit header configuration
+app.use(await auth({
+  protocolHeader: 'X-Forwarded-Proto',
+  hostHeader: 'X-Forwarded-Host',
+}));
+
+// Option 3: Force HTTPS regardless
+app.use(await auth({ forceHttps: true }));
 ```
+
+#### Sub-Path Mounting and Well-Known Discovery
+
+Per [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728), the `.well-known/oauth-protected-resource` endpoint is constructed by inserting the well-known path between the host and the resource path. For example, if your resource is at `https://example.com/hub/mcp`, clients will discover metadata at:
+
+```
+GET /.well-known/oauth-protected-resource/hub/mcp
+```
+
+When mounting the middleware at a sub-path (e.g. `app.use("/hub", await auth())`), the well-known endpoint will be served at `/hub/.well-known/oauth-protected-resource`. You will need to configure a rewrite rule (e.g. in your reverse proxy or Express app) to route `/.well-known/oauth-protected-resource/hub/mcp` to `/hub/.well-known/oauth-protected-resource`.
+
+Similarly, the legacy OAuth endpoints (`/authorize`, `/token`, `/register`, `/oauth/callback`, `/.well-known/oauth-authorization-server`) are always advertised at the root. When the middleware is mounted at a sub-path, these endpoints will be served under that path (e.g. `/hub/authorize`). You will need to configure rewrite rules to route the root paths to the mounted paths.
 
 #### Custom State Store
 
@@ -367,7 +388,8 @@ The `auth()` middleware accepts the following configuration options:
 | `clientId`                       | `string`        | Public Civic client ID                                          | OAuth client ID / Tenant ID for token validation       |
 | `wellKnownUrl`                   | `string`        | `https://auth.civic.com/oauth/.well-known/openid-configuration` | URL to the auth server's OIDC configuration            |
 | `scopesSupported`                | `string[]`      | `['openid', 'profile', 'email']`                                | OAuth scopes to support                                |
-| `issuerUrl`                      | `string \| URL` | Server's base URL                                               | Issuer URL for the resource server                     |
+| `protocolHeader`                 | `string`        | -                                                               | Header name to read protocol from (e.g. `X-Forwarded-Proto`) |
+| `hostHeader`                     | `string`        | `host`                                                          | Header name to read host from (e.g. `X-Forwarded-Host`) |
 | `basePath`                       | `string`        | `/`                                                             | Base path for auth endpoints                           |
 | `mcpRoute`                       | `string`        | `/mcp`                                                          | The MCP route to protect with authentication           |
 | `onLogin`                        | `function`      | -                                                               | Optional callback to enrich auth info with custom data |

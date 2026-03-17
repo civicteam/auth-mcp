@@ -118,11 +118,11 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
 
   /**
    * Get the OAuth Protected Resource metadata
-   * @param issuerUrl The issuer URL of the resource server (e.g., https://my-server.com)
+   * @param resourceUrl The resource URL of the protected resource (e.g., https://my-server.com/mcp)
    */
-  getProtectedResourceMetadata(issuerUrl: string) {
+  getProtectedResourceMetadata(resourceUrl: string) {
     return {
-      resource: issuerUrl,
+      resource: resourceUrl,
       authorization_servers: [this.oidcConfig.issuer],
       scopes_supported: this.options.scopesSupported || DEFAULT_SCOPES,
       bearer_methods_supported: ["header"],
