@@ -17,33 +17,6 @@ export type { UrlResolutionOptions } from "./resolveUrl.js";
 export * from "./types.js";
 
 /**
- * Derive the mount path from req.originalUrl by stripping the well-known suffix.
- * Inside router.use("/.well-known/...", handler), req.baseUrl includes the well-known
- * path, so we use req.originalUrl which preserves the full original request path.
- */
-function getMountPath(req: Request, wellKnownPath: string): string {
-  const idx = req.originalUrl.indexOf(wellKnownPath);
-  return idx > 0 ? req.originalUrl.slice(0, idx) : "";
-}
-
-/**
- * Resolve the resource URL for the protected resource metadata.
- * Supports absolute URLs, relative paths, and dynamic derivation.
- */
-function resolveResourceUrl(req: Request, options: CivicAuthOptions<any, any>, mcpRoute: string, wellKnownPath: string): string {
-  if (options.resourceUrl) {
-    const url = typeof options.resourceUrl === "string" ? options.resourceUrl : options.resourceUrl.toString();
-    // Relative path — prepend origin derived from request
-    if (url.startsWith("/")) {
-      return `${resolveBaseUrl(req, options)}${url}`;
-    }
-    return url;
-  }
-  // Dynamic derivation: origin + mount path + mcpRoute
-  return `${resolveBaseUrl(req, options)}${getMountPath(req, wellKnownPath)}${mcpRoute}`;
-}
-
-/**
  * Express middleware that configures an MCP server to use Civic Auth
  * as its authorization server.
  *
@@ -76,13 +49,16 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
   // Create router
   const router = Router();
 
-  const WELL_KNOWN_PATH = "/.well-known/oauth-protected-resource";
+  const wellKnownPath = "/.well-known/oauth-protected-resource";
 
   // Expose OAuth Protected Resource Metadata
   // This tells MCP clients where to authenticate
-  // Handle all routes starting with /.well-known/oauth-protected-resource
-  router.use(WELL_KNOWN_PATH, (req, res) => {
-    const resourceUrl = resolveResourceUrl(req, options, mcpRoute, WELL_KNOWN_PATH);
+  router.use(wellKnownPath, (req, res) => {
+    // Derive resource URL from the request: strip the well-known suffix to get
+    // the mount path, then append mcpRoute.
+    // e.g. originalUrl "/hub/.well-known/..." → mount "/hub" → resource "/hub/mcp"
+    const mountPath = req.originalUrl.slice(0, req.originalUrl.indexOf(wellKnownPath));
+    const resourceUrl = `${resolveBaseUrl(req, options)}${mountPath}${mcpRoute}`;
     const metadata = mcpServerAuth.getProtectedResourceMetadata(resourceUrl);
     res.json(metadata);
   });

@@ -128,7 +128,6 @@ app.use(await auth({
   wellKnownUrl: 'https://accounts.google.com/.well-known/openid-configuration',
     
   // Or specify additional options
-  resourceUrl: 'https://my-mcp-server.com/mcp',  // Static override for RFC 9728 resource URL
   scopesSupported: ['openid', 'profile', 'email', 'custom:scope'],
   
   // Protect a different route (defaults to '/mcp')
@@ -377,7 +376,6 @@ The `auth()` middleware accepts the following configuration options:
 | `clientId`                       | `string`        | Public Civic client ID                                          | OAuth client ID / Tenant ID for token validation       |
 | `wellKnownUrl`                   | `string`        | `https://auth.civic.com/oauth/.well-known/openid-configuration` | URL to the auth server's OIDC configuration            |
 | `scopesSupported`                | `string[]`      | `['openid', 'profile', 'email']`                                | OAuth scopes to support                                |
-| `resourceUrl`                    | `string \| URL` | Derived from request                                            | Static override for the OAuth resource URL (RFC 9728)  |
 | `protocolHeader`                 | `string`        | -                                                               | Header name to read protocol from (e.g. `X-Forwarded-Proto`) |
 | `hostHeader`                     | `string`        | `host`                                                          | Header name to read host from (e.g. `X-Forwarded-Host`) |
 | `basePath`                       | `string`        | `/`                                                             | Base path for auth endpoints                           |

@@ -20,14 +20,6 @@ export interface CivicAuthOptions<
   scopesSupported?: string[];
 
   /**
-   * Optional override for the OAuth resource URL (RFC 9728 `resource` field).
-   * If not set, derived dynamically from the request.
-   * Can be an absolute URL (e.g. "https://example.com/mcp") or a relative path
-   * (e.g. "/hub/mcp") which will be resolved against the request origin.
-   */
-  resourceUrl?: string | URL;
-
-  /**
    * Header name to read the protocol from (e.g. "X-Forwarded-Proto").
    * Only used when resourceUrl is not set.
    */

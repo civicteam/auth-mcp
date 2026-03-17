@@ -90,15 +90,6 @@ describe("auth middleware", () => {
       expect(response.body.resource_policy_uri).toBe("https://www.civic.com/privacy-policy");
     });
 
-    it("should use custom resourceUrl if provided", async () => {
-      const customApp = express();
-      customApp.use(await auth({ resourceUrl: "https://custom-server.com/mcp" }));
-
-      const response = await request(customApp).get("/.well-known/oauth-protected-resource").expect(200);
-
-      expect(response.body.resource).toBe("https://custom-server.com/mcp");
-    });
-
     it("should derive resource URL dynamically with mcpRoute", async () => {
       const response = await request(app).get("/.well-known/oauth-protected-resource").expect(200);
 
@@ -106,7 +97,7 @@ describe("auth middleware", () => {
       expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/mcp$/);
     });
 
-    it("should include baseUrl when mounted at a sub-path", async () => {
+    it("should include mount path when mounted at a sub-path", async () => {
       const outerApp = express();
       outerApp.use("/hub", await auth());
 
@@ -114,24 +105,6 @@ describe("auth middleware", () => {
 
       // Resource URL should include the mount path + mcpRoute
       expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/hub\/mcp$/);
-    });
-
-    it("should resolve relative resourceUrl against request origin", async () => {
-      const customApp = express();
-      customApp.use(await auth({ resourceUrl: "/hub/mcp" }));
-
-      const response = await request(customApp).get("/.well-known/oauth-protected-resource").expect(200);
-
-      expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/hub\/mcp$/);
-    });
-
-    it("should use resourceUrl as URL object", async () => {
-      const customApp = express();
-      customApp.use(await auth({ resourceUrl: new URL("https://custom-server.com/api/mcp") }));
-
-      const response = await request(customApp).get("/.well-known/oauth-protected-resource").expect(200);
-
-      expect(response.body.resource).toBe("https://custom-server.com/api/mcp");
     });
 
     it("should respect protocolHeader option", async () => {
@@ -327,12 +300,12 @@ describe("auth middleware", () => {
       const mockInit = vi.mocked(McpServerAuth.init);
 
       await auth({
-        resourceUrl: new URL("https://custom-server.com/mcp"),
+        mcpRoute: "/api",
         onLogin: vi.fn() as any,
       });
 
       expect(mockInit).toHaveBeenCalledWith({
-        resourceUrl: new URL("https://custom-server.com/mcp"),
+        mcpRoute: "/api",
         onLogin: expect.any(Function),
       });
     });

@@ -8,8 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-03-17
 
 ### Changed
-- **BREAKING:** Renamed `issuerUrl` option to `resourceUrl` — now correctly describes the RFC 9728 `resource` field
-- Resource URL is now dynamically derived from request host, Express mount path, and MCP route when `resourceUrl` is not set
+- **BREAKING:** Removed `issuerUrl` option — resource URL (RFC 9728 `resource` field) is now dynamically derived from request host, Express mount path, and `mcpRoute`
 - `WWW-Authenticate` header now includes the Express mount path in the metadata URL
 - Legacy OAuth metadata URLs now include the Express mount path
 - OAuth callback URL now includes the Express mount path
