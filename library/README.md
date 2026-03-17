@@ -360,6 +360,8 @@ GET /.well-known/oauth-protected-resource/hub/mcp
 
 When mounting the middleware at a sub-path (e.g. `app.use("/hub", await auth())`), the well-known endpoint will be served at `/hub/.well-known/oauth-protected-resource`. You will need to configure a rewrite rule (e.g. in your reverse proxy or Express app) to route `/.well-known/oauth-protected-resource/hub/mcp` to `/hub/.well-known/oauth-protected-resource`.
 
+Similarly, the legacy OAuth endpoints (`/authorize`, `/token`, `/register`, `/oauth/callback`, `/.well-known/oauth-authorization-server`) are always advertised at the root. When the middleware is mounted at a sub-path, these endpoints will be served under that path (e.g. `/hub/authorize`). You will need to configure rewrite rules to route the root paths to the mounted paths.
+
 #### Custom State Store
 
 By default, the legacy OAuth mode uses an in-memory state store for managing OAuth flow state between redirects. For production deployments with multiple servers or processes, you can provide a custom state store implementation:
