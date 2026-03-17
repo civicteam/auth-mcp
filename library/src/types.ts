@@ -21,13 +21,13 @@ export interface CivicAuthOptions<
 
   /**
    * Header name to read the protocol from (e.g. "X-Forwarded-Proto").
-   * Only used when resourceUrl is not set.
+   * Resolution order: forceHttps > protocolHeader > req.protocol.
    */
   protocolHeader?: string;
 
   /**
    * Header name to read the host from (e.g. "X-Forwarded-Host").
-   * Defaults to "host". Only used when resourceUrl is not set.
+   * Defaults to the standard "host" header.
    */
   hostHeader?: string;
 
