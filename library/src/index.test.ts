@@ -164,7 +164,7 @@ describe("auth middleware", () => {
 
       // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
       expect(response.headers["www-authenticate"]).toMatch(
-        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource\/mcp"$/
       );
     });
 
@@ -180,7 +180,7 @@ describe("auth middleware", () => {
 
       // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
       expect(response.headers["www-authenticate"]).toMatch(
-        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource\/mcp"$/
       );
     });
 
@@ -197,7 +197,7 @@ describe("auth middleware", () => {
 
       // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
       expect(response.headers["www-authenticate"]).toMatch(
-        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource\/mcp"$/
       );
     });
 
@@ -257,7 +257,7 @@ describe("auth middleware", () => {
 
       // Per RFC9728 Section 5.1, WWW-Authenticate header must be included
       expect(response.headers["www-authenticate"]).toMatch(
-        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource"$/
+        /^Bearer resource_metadata="http:\/\/127\.0\.0\.1:\d+\/\.well-known\/oauth-protected-resource\/mcp"$/
       );
     });
 

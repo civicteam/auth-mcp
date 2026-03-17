@@ -350,6 +350,16 @@ app.use(await auth({
 app.use(await auth({ forceHttps: true }));
 ```
 
+#### Sub-Path Mounting and Well-Known Discovery
+
+Per [RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728), the `.well-known/oauth-protected-resource` endpoint is constructed by inserting the well-known path between the host and the resource path. For example, if your resource is at `https://example.com/hub/mcp`, clients will discover metadata at:
+
+```
+GET /.well-known/oauth-protected-resource/hub/mcp
+```
+
+When mounting the middleware at a sub-path (e.g. `app.use("/hub", await auth())`), the well-known endpoint will be served at `/hub/.well-known/oauth-protected-resource`. You will need to configure a rewrite rule (e.g. in your reverse proxy or Express app) to route `/.well-known/oauth-protected-resource/hub/mcp` to `/hub/.well-known/oauth-protected-resource`.
+
 #### Custom State Store
 
 By default, the legacy OAuth mode uses an in-memory state store for managing OAuth flow state between redirects. For production deployments with multiple servers or processes, you can provide a custom state store implementation:

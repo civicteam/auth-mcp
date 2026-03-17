@@ -99,9 +99,11 @@ export async function auth<TAuthInfo extends ExtendedAuthInfo>(
     } catch (error) {
       if (error instanceof AuthenticationError) {
         // authentication errors e.g. jwt verification errors (expired, invalid signature, etc.) should return 401
-        // Per RFC9728 Section 5.1, include WWW-Authenticate header with resource metadata URL
+        // Per RFC9728 Section 3, the well-known URI is constructed by inserting
+        // /.well-known/oauth-protected-resource between host and resource path
         const baseUrl = resolveBaseUrl(req, options);
-        const metadataUrl = `${baseUrl}${req.baseUrl}/.well-known/oauth-protected-resource`;
+        const resourcePath = `${req.baseUrl}${mcpRoute}`;
+        const metadataUrl = `${baseUrl}/.well-known/oauth-protected-resource${resourcePath}`;
 
         res.setHeader("WWW-Authenticate", `Bearer resource_metadata="${metadataUrl}"`);
         res.status(401).json({
