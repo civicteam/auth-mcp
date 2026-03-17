@@ -107,6 +107,17 @@ describe("auth middleware", () => {
       expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/hub\/mcp$/);
     });
 
+    it("should respond to well-known with sub-path (wildcard matching)", async () => {
+      // Per RFC 9728, clients may request /.well-known/oauth-protected-resource/hub/mcp
+      // which, when rewritten to the router mount, hits /hub/.well-known/oauth-protected-resource/hub/mcp
+      const outerApp = express();
+      outerApp.use("/hub", await auth());
+
+      const response = await request(outerApp).get("/hub/.well-known/oauth-protected-resource/hub/mcp").expect(200);
+
+      expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/hub\/mcp$/);
+    });
+
     it("should respect protocolHeader option", async () => {
       const customApp = express();
       customApp.use(await auth({ protocolHeader: "X-Forwarded-Proto" }));
