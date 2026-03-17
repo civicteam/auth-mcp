@@ -324,7 +324,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
    */
   private getMcpCallbackUrl(req: TRequest): string {
     const baseUrl = resolveBaseUrl(req, this.options);
-    return `${baseUrl}${(req as any).baseUrl || ""}/oauth/callback`;
+    return `${baseUrl}/oauth/callback`;
   }
 
   /**

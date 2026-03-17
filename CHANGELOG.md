@@ -9,9 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **BREAKING:** Removed `issuerUrl` option — resource URL (RFC 9728 `resource` field) is now dynamically derived from request host, Express mount path, and `mcpRoute`
-- `WWW-Authenticate` header now includes the Express mount path in the metadata URL
-- Legacy OAuth metadata URLs now include the Express mount path
-- OAuth callback URL now includes the Express mount path
+- `WWW-Authenticate` metadata URL now constructed per RFC 9728 Section 3
 
 ### Added
 - New `protocolHeader` option to read protocol from a custom header (e.g. `X-Forwarded-Proto`)

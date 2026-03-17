@@ -32,7 +32,7 @@ export class LegacyOAuthRouter<TAuthInfo extends ExtendedAuthInfo> {
 
     // OAuth Authorization Server Metadata (legacy)
     router.get(LEGACY_OAUTH_PATHS.WELL_KNOWN, (req: Request, res: Response) => {
-      const baseUrl = `${resolveBaseUrl(req, this.options)}${req.baseUrl}`;
+      const baseUrl = resolveBaseUrl(req, this.options);
       const metadata = {
         issuer: baseUrl,
         authorization_endpoint: `${baseUrl}${LEGACY_OAUTH_PATHS.AUTHORIZE}`,
