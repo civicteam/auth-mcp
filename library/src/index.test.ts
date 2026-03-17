@@ -116,6 +116,15 @@ describe("auth middleware", () => {
       expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/hub\/mcp$/);
     });
 
+    it("should resolve relative resourceUrl against request origin", async () => {
+      const customApp = express();
+      customApp.use(await auth({ resourceUrl: "/hub/mcp" }));
+
+      const response = await request(customApp).get("/.well-known/oauth-protected-resource").expect(200);
+
+      expect(response.body.resource).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/hub\/mcp$/);
+    });
+
     it("should use resourceUrl as URL object", async () => {
       const customApp = express();
       customApp.use(await auth({ resourceUrl: new URL("https://custom-server.com/api/mcp") }));
