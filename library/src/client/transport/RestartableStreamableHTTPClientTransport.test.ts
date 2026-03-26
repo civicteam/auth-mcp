@@ -3,13 +3,14 @@ import type { CLIAuthProvider } from "../providers/index.js";
 import { RestartableStreamableHTTPClientTransport } from "./RestartableStreamableHTTPClientTransport.js";
 
 // Mock StreamableHTTPClientTransport with specific path
-vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
-  StreamableHTTPClientTransport: vi.fn().mockImplementation(() => ({
-    start: vi.fn().mockResolvedValue(undefined),
-    close: vi.fn().mockResolvedValue(undefined),
-    finishAuth: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
+vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => {
+  const StreamableHTTPClientTransport = vi.fn(function (this: any) {
+    this.start = vi.fn().mockResolvedValue(undefined);
+    this.close = vi.fn().mockResolvedValue(undefined);
+    this.finishAuth = vi.fn().mockResolvedValue(undefined);
+  });
+  return { StreamableHTTPClientTransport };
+});
 
 // Don't mock CLIAuthProvider - use it directly
 
@@ -27,18 +28,15 @@ describe("RestartableStreamableHTTPClientTransport", () => {
       await import("@modelcontextprotocol/sdk/client/streamableHttp.js")
     );
 
-    // Create mock inner transport
-    mockInnerTransport = {
-      start: vi.fn().mockResolvedValue(undefined),
-      close: vi.fn().mockResolvedValue(undefined),
-      finishAuth: vi.fn().mockResolvedValue(undefined),
-      send: vi.fn(),
-      onmessage: null,
-      onerror: null,
-      onclose: null,
-    };
-
-    (StreamableHTTPClientTransport as any).mockImplementation(() => mockInnerTransport);
+    (StreamableHTTPClientTransport as any).mockImplementation(function (this: any) {
+      this.start = vi.fn().mockResolvedValue(undefined);
+      this.close = vi.fn().mockResolvedValue(undefined);
+      this.finishAuth = vi.fn().mockResolvedValue(undefined);
+      this.send = vi.fn();
+      this.onmessage = null;
+      this.onerror = null;
+      this.onclose = null;
+    });
 
     // Create a mock auth provider
     mockAuthProvider = {
@@ -50,6 +48,9 @@ describe("RestartableStreamableHTTPClientTransport", () => {
     transport = new RestartableStreamableHTTPClientTransport(url, {
       authProvider: mockAuthProvider,
     });
+
+    // Reference the constructed instance as mockInnerTransport for assertions
+    mockInnerTransport = transport;
   });
 
   it("should create a transport instance", () => {

@@ -12,8 +12,8 @@ export * from "./constants.js";
 export { InMemoryStateStore } from "./legacy/StateStore.js";
 export type { OAuthState, StateStore } from "./legacy/types.js";
 export { McpServerAuth } from "./McpServerAuth.js";
-export { resolveBaseUrl } from "./resolveUrl.js";
 export type { UrlResolutionOptions } from "./resolveUrl.js";
+export { resolveBaseUrl } from "./resolveUrl.js";
 export * from "./types.js";
 
 /**

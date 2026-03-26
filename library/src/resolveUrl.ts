@@ -16,9 +16,11 @@ export function resolveBaseUrl(req: IncomingMessage, options: UrlResolutionOptio
     protocol = "https";
   } else if (options.protocolHeader) {
     const headerValue = req.headers?.[options.protocolHeader.toLowerCase()];
-    protocol = (typeof headerValue === "string" ? headerValue : undefined) ?? ("protocol" in req ? (req as any).protocol : "http");
+    protocol =
+      (typeof headerValue === "string" ? headerValue : undefined) ??
+      ("protocol" in req ? (req as unknown as { protocol: string }).protocol : "http");
   } else {
-    protocol = "protocol" in req ? (req as any).protocol : "http";
+    protocol = "protocol" in req ? (req as unknown as { protocol: string }).protocol : "http";
   }
 
   let host: string | undefined;
