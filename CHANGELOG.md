@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-03-26
+
+### Fixed
+- All JWT claims are now forwarded to consumers via `extra` field — previously only `sub` was included, causing claims like organization identifiers to be lost
+
+### Changed
+- `ExtendedAuthInfo.extra` now accepts arbitrary claims via index signature
+- Upgraded vite from 7.3.1 to 8.0.3, vitest to 4.1.2, @vitest/coverage-v8 to 4.1.2
+- Removed 8 stale pnpm overrides that are no longer needed
+
+### Security
+- Fixed CVE-2026-33671 (picomatch ReDoS) and CVE-2026-33672 (picomatch method injection) by upgrading picomatch to 4.0.4
+- Fixed CVE-2026-33750 (brace-expansion hang) via pnpm override to 5.0.5
+
 ## [0.3.0] - 2026-03-17
 
 ### Changed
