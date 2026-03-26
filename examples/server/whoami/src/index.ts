@@ -4,7 +4,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import cors from "cors";
 import express from "express";
 
-const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : 33007;
+const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 33007;
 
 // Create your Express app
 const app = express();

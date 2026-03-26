@@ -150,7 +150,7 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
             scopes: payload.scope ? (payload.scope as string).split(" ") : [],
             expiresAt: payload.exp,
             extra: {
-              sub: payload.sub as string,
+              ...payload,
             },
           }
         : null;

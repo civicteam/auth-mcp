@@ -288,9 +288,7 @@ export class OAuthProxyHandler<TAuthInfo extends ExtendedAuthInfo, TRequest exte
       // Build the registration scope: start with defaults, then preserve any
       // allowed additional scopes the client explicitly requested.
       const requestedScopes = (bodyObj.scope || "").split(/\s+/).filter(Boolean);
-      const additionalScopes = requestedScopes.filter((s) =>
-        ALLOWED_ADDITIONAL_SCOPES.includes(s),
-      );
+      const additionalScopes = requestedScopes.filter((s) => ALLOWED_ADDITIONAL_SCOPES.includes(s));
       const finalScope = [DEFAULT_SCOPES, ...additionalScopes].join(" ");
       console.log(`Replacing requested scopes "${bodyObj.scope}" with "${finalScope}"`);
       bodyObj.scope = finalScope;

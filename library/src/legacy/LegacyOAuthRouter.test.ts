@@ -15,14 +15,15 @@ vi.mock("express", () => ({
 }));
 
 // Mock OAuthProxyHandler
-vi.mock("./OAuthProxyHandler.js", () => ({
-  OAuthProxyHandler: vi.fn().mockImplementation(() => ({
-    handleAuthorize: vi.fn(),
-    handleCallback: vi.fn(),
-    handleToken: vi.fn(),
-    handleRegistration: vi.fn(),
-  })),
-}));
+vi.mock("./OAuthProxyHandler.js", () => {
+  const OAuthProxyHandler = vi.fn(function (this: any) {
+    this.handleAuthorize = vi.fn();
+    this.handleCallback = vi.fn();
+    this.handleToken = vi.fn();
+    this.handleRegistration = vi.fn();
+  });
+  return { OAuthProxyHandler };
+});
 
 describe("LegacyOAuthRouter", () => {
   let router: LegacyOAuthRouter<any>;

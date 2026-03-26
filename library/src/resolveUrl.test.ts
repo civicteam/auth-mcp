@@ -2,10 +2,7 @@ import type { IncomingMessage } from "node:http";
 import { describe, expect, it } from "vitest";
 import { resolveBaseUrl } from "./resolveUrl.js";
 
-function mockReq(overrides: {
-  protocol?: string;
-  headers?: Record<string, string>;
-} = {}): IncomingMessage {
+function mockReq(overrides: { protocol?: string; headers?: Record<string, string> } = {}): IncomingMessage {
   return {
     protocol: overrides.protocol ?? "http",
     headers: overrides.headers ?? { host: "example.com" },
@@ -69,9 +66,11 @@ describe("resolveBaseUrl", () => {
         "x-forwarded-host": "app.example.com",
       },
     });
-    expect(resolveBaseUrl(req, {
-      protocolHeader: "X-Forwarded-Proto",
-      hostHeader: "X-Forwarded-Host",
-    })).toBe("https://app.example.com");
+    expect(
+      resolveBaseUrl(req, {
+        protocolHeader: "X-Forwarded-Proto",
+        hostHeader: "X-Forwarded-Host",
+      })
+    ).toBe("https://app.example.com");
   });
 });

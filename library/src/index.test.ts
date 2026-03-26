@@ -10,22 +10,23 @@ let mockVerifyToken: any;
 let mockHandleRequest: any;
 
 // Mock OAuthProxyHandler
-vi.mock("./legacy/OAuthProxyHandler.js", () => ({
-  OAuthProxyHandler: vi.fn().mockImplementation(() => ({
-    handleAuthorize: vi.fn().mockImplementation((_req, res) => {
+vi.mock("./legacy/OAuthProxyHandler.js", () => {
+  const OAuthProxyHandler = vi.fn(function (this: any) {
+    this.handleAuthorize = vi.fn().mockImplementation((_req, res) => {
       res.redirect(302, "https://auth.civic.com/oauth/authorize");
-    }),
-    handleCallback: vi.fn().mockImplementation((_req, res) => {
+    });
+    this.handleCallback = vi.fn().mockImplementation((_req, res) => {
       res.status(400).json({ error: "invalid_request" });
-    }),
-    handleToken: vi.fn().mockImplementation((_req, res) => {
+    });
+    this.handleToken = vi.fn().mockImplementation((_req, res) => {
       res.status(400).json({ error: "invalid_request" });
-    }),
-    handleRegistration: vi.fn().mockImplementation((_req, res) => {
+    });
+    this.handleRegistration = vi.fn().mockImplementation((_req, res) => {
       res.status(400).json({ error: "invalid_request" });
-    }),
-  })),
-}));
+    });
+  });
+  return { OAuthProxyHandler };
+});
 
 // Mock McpServerAuth
 vi.mock("./McpServerAuth.js", () => ({
