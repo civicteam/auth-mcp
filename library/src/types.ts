@@ -135,6 +135,7 @@ export interface ExtendedAuthInfo extends AuthInfo {
     email?: string;
     name?: string;
     picture?: string;
+    [key: string]: unknown;
   };
 }
 

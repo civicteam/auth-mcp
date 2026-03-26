@@ -149,6 +149,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES.slice(0, 2).join(" "),
+          exp: 1234567890,
         },
       });
     });
@@ -221,6 +225,10 @@ describe("McpServerAuth", () => {
           expiresAt: 1234567890,
           extra: {
             sub: "user123",
+            client_id: PUBLIC_CIVIC_CLIENT_ID,
+            tid: undefined,
+            scope: DEFAULT_SCOPES[0],
+            exp: 1234567890,
           },
         },
         mockRequest
@@ -234,6 +242,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
           customData: "custom-value",
         },
       });
@@ -317,6 +329,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          aud: PUBLIC_CIVIC_CLIENT_ID,
+          client_id: undefined,
+          tid: PUBLIC_CIVIC_CLIENT_ID,
+          exp: 1234567890,
         },
       });
     });
@@ -410,6 +426,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: "dynamic-client-id",
+          tid: "expected-client-id",
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
         },
       });
     });
@@ -496,6 +516,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: "expected-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
         },
       });
     });
@@ -561,6 +585,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES.slice(0, 2).join(" "),
+          exp: 1234567890,
         },
       });
     });
@@ -594,6 +622,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
         },
       });
     });
@@ -630,6 +662,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: "any-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
         },
       });
     });
@@ -693,6 +729,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: "different-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
         },
       });
     });
@@ -771,6 +811,10 @@ describe("McpServerAuth", () => {
         expiresAt: 1234567890,
         extra: {
           sub: "user123",
+          client_id: "custom-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
         },
       });
     });
