@@ -8,13 +8,17 @@ const MCP_SERVER_URL = process.env.MCP_SERVER_URL ?? "http://localhost:33007/mcp
 
 async function main() {
   // Check for required environment variables
-  if (!process.env.OAUTH_CLIENT_ID) {
-    throw new Error("OAUTH_CLIENT_ID environment variable is required");
+  if (!process.env.OAUTH_CLIENT_ID && !process.env.OAUTH_CLIENT_METADATA_URL) {
+    throw new Error("Either OAUTH_CLIENT_ID or OAUTH_CLIENT_METADATA_URL environment variable is required");
   }
 
-  // Create the auth provider
+  // Create the auth provider. A pre-registered client ID takes precedence;
+  // otherwise the hosted Client ID Metadata Document URL is used as the
+  // client_id (CIMD), falling back to Dynamic Client Registration if the
+  // authorization server does not support CIMD.
   const authProvider = new CLIAuthProvider({
     clientId: process.env.OAUTH_CLIENT_ID,
+    clientMetadataUrl: process.env.OAUTH_CLIENT_METADATA_URL,
   });
 
   // Create the transport with auth provider

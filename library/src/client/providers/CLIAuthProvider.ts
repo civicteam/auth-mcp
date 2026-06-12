@@ -6,13 +6,12 @@ import url from "node:url";
 import { promisify } from "node:util";
 import type { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import type { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { OAuthClientInformation, OAuthClientMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
+import type { OAuthClientMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
 import escapeHtml from "escape-html";
 import { DEFAULT_CALLBACK_PORT, DEFAULT_SCOPES } from "../../constants.js";
 import { CivicAuthProvider, type CivicAuthProviderOptions } from "./CivicAuthProvider.js";
 
 export interface CLIAuthProviderOptions extends CivicAuthProviderOptions {
-  clientId: string;
   scope?: string;
   callbackPort?: number;
   enablePortFallback?: boolean;
@@ -27,7 +26,6 @@ export interface CLIAuthProviderOptions extends CivicAuthProviderOptions {
  */
 export class CLIAuthProvider extends CivicAuthProvider {
   private storedCodeVerifier: string | undefined;
-  private clientId: string;
   private scope: string;
   private callbackPort: number;
   private enablePortFallback: boolean;
@@ -43,7 +41,9 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
   constructor(options: CLIAuthProviderOptions) {
     super(options);
-    this.clientId = options.clientId;
+    if (!options.clientId && !options.clientMetadataUrl) {
+      throw new Error("CLIAuthProvider requires either a clientId or a clientMetadataUrl");
+    }
     this.scope = options.scope ?? DEFAULT_SCOPES.join(" ");
     this.callbackPort = options.callbackPort ?? DEFAULT_CALLBACK_PORT;
     this.enablePortFallback = options.enablePortFallback ?? true;
@@ -55,23 +55,10 @@ export class CLIAuthProvider extends CivicAuthProvider {
       options.errorHtml ?? '<html lang="en"><body><h1>Authorization Failed</h1><p>{{error}}</p></body></html>';
   }
 
-  clientInformation(): OAuthClientInformation | Promise<OAuthClientInformation | undefined> | undefined {
-    const info: OAuthClientInformation = {
-      client_id: this.clientId,
-    };
-
-    // Include client_secret if provided (for non-PKCE auth servers)
-    if (this.clientSecret) {
-      info.client_secret = this.clientSecret;
-    }
-
-    return info;
-  }
-
   get clientMetadata(): OAuthClientMetadata {
     return {
       redirect_uris: [this.getCallbackUrl(this.callbackPort)],
-      client_name: this.clientId,
+      client_name: this.clientName ?? this.clientId ?? "Civic Auth MCP Client",
       scope: this.scope,
     };
   }

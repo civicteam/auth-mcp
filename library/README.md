@@ -224,6 +224,45 @@ const mcpClient = new CLIClient(
 await mcpClient.connect(transport);
 ```
 
+### 🪪 Client ID Metadata Documents (CIMD)
+
+Instead of pre-registering a client ID, your client can identify itself with a
+[Client ID Metadata Document](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-00)
+(SEP-991) — a JSON document hosted at an HTTPS URL that doubles as the OAuth `client_id`.
+This is the preferred registration mechanism in the MCP spec since 2025-11-25 and is used by
+Claude, Claude Code, and VS Code.
+
+If your metadata document is already hosted somewhere, pass its URL instead of a client ID:
+
+```typescript
+const authProvider = new CLIAuthProvider({
+  clientMetadataUrl: "https://myagent.example.com/oauth/client-metadata.json",
+});
+```
+
+When the authorization server advertises `client_id_metadata_document_supported`, the URL is
+used directly as the `client_id`; otherwise the flow falls back to Dynamic Client Registration.
+A pre-registered `clientId`, if also provided, always takes precedence.
+
+To host the document itself, build it with `buildClientMetadataDocument` or serve it with the
+Express handler — mounted at the exact path of its public URL:
+
+```typescript
+import { clientMetadataHandler } from "@civic/auth-mcp";
+import { LOOPBACK_REDIRECT_URIS } from "@civic/auth-mcp/client";
+
+app.get(
+  "/oauth/client-metadata.json",
+  clientMetadataHandler({
+    url: "https://myagent.example.com/oauth/client-metadata.json",
+    clientName: "My Agent",
+    // For CLI/native clients use portless loopback URIs (RFC 8252);
+    // for web clients list your hosted callback URLs.
+    redirectUris: LOOPBACK_REDIRECT_URIS,
+  })
+);
+```
+
 ### 💾 Token Persistence
 
 By default, tokens are stored in memory and lost when the process exits. You can configure persistent token storage by implementing the `TokenPersistence` interface.
