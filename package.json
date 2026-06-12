@@ -21,12 +21,12 @@
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",
     "audit-ci": "^7.1.0",
-    "turbo": "^2.5.4",
-    "vite": "8.0.3"
+    "turbo": "^2.9.18",
+    "vite": "8.0.16"
   },
   "pnpm": {
     "overrides": {
-      "brace-expansion@<5.0.5": "5.0.5"
+      "brace-expansion@<5.0.6": "5.0.6"
     }
   },
   "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
