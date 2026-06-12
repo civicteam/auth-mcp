@@ -533,3 +533,50 @@ describe("CLIAuthProvider", () => {
     });
   });
 });
+
+describe("CLIAuthProvider with a Client ID Metadata Document (CIMD)", () => {
+  const CLIENT_METADATA_URL = "https://app.example.com/oauth/client-metadata.json";
+
+  it("requires either a clientId or a clientMetadataUrl", () => {
+    expect(() => new CLIAuthProvider({})).toThrow(/clientId or a clientMetadataUrl/);
+  });
+
+  it("rejects an invalid clientMetadataUrl at construction time", () => {
+    expect(() => new CLIAuthProvider({ clientMetadataUrl: "http://insecure.example.com/client.json" })).toThrow(
+      /https scheme/
+    );
+    expect(() => new CLIAuthProvider({ clientMetadataUrl: "https://app.example.com" })).toThrow(/path component/);
+  });
+
+  it("exposes clientMetadataUrl for the SDK's CIMD flow", () => {
+    const provider = new CLIAuthProvider({ clientMetadataUrl: CLIENT_METADATA_URL });
+    expect(provider.clientMetadataUrl).toBe(CLIENT_METADATA_URL);
+  });
+
+  it("returns no client information until the SDK saves it", () => {
+    const provider = new CLIAuthProvider({ clientMetadataUrl: CLIENT_METADATA_URL });
+    expect(provider.clientInformation()).toBeUndefined();
+  });
+
+  it("returns client information saved by the SDK (CIMD or DCR fallback)", () => {
+    const provider = new CLIAuthProvider({ clientMetadataUrl: CLIENT_METADATA_URL });
+    provider.saveClientInformation({ client_id: CLIENT_METADATA_URL });
+    expect(provider.clientInformation()).toEqual({ client_id: CLIENT_METADATA_URL });
+  });
+
+  it("prefers a pre-registered clientId over the metadata URL", () => {
+    const provider = new CLIAuthProvider({
+      clientId: "pre-registered-id",
+      clientMetadataUrl: CLIENT_METADATA_URL,
+    });
+    expect(provider.clientInformation()).toEqual({ client_id: "pre-registered-id" });
+  });
+
+  it("uses clientName, then clientId, then a default for DCR metadata", () => {
+    const named = new CLIAuthProvider({ clientMetadataUrl: CLIENT_METADATA_URL, clientName: "My Agent" });
+    expect(named.clientMetadata.client_name).toBe("My Agent");
+
+    const unnamed = new CLIAuthProvider({ clientMetadataUrl: CLIENT_METADATA_URL });
+    expect(unnamed.clientMetadata.client_name).toBe("Civic Auth MCP Client");
+  });
+});

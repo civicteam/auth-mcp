@@ -8,6 +8,7 @@ import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } f
 import { AuthenticationError } from "./types.js";
 
 export * from "./client/index.js";
+export { type ClientMetadataHandlerOptions, clientMetadataHandler } from "./clientMetadataHandler.js";
 export * from "./constants.js";
 export { InMemoryStateStore } from "./legacy/StateStore.js";
 export type { OAuthState, StateStore } from "./legacy/types.js";
