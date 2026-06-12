@@ -24,9 +24,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          # Node 24 ships npm >= 11.5.1, required for npm Trusted Publishing (OIDC)
+          node-version: 24.x
           cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -37,12 +37,13 @@ jobs:
       - name: Run tests
         run: pnpm turbo run test -- --run
       
+      # Authenticates via npm Trusted Publishing (OIDC) — no token required.
+      # Configured on npmjs.com: package settings -> Trusted Publisher ->
+      # GitHub Actions, repository civicteam/auth-mcp, workflow release.yml
       - name: Publish to npm
         run: |
           cd library
           npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
       
       - name: Create GitHub Release
         uses: actions/create-release@v1
