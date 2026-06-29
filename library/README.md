@@ -347,6 +347,19 @@ This will ensure that your client ID is passed to the auth server during client 
 
 Note - this feature is available for the Civic Auth provider only. Behaviour may differ for other providers.
 
+#### Issuer acceptance
+
+When using Civic Auth, discovery advertises the tenant-scoped issuer (e.g. `https://auth.civic.com/oauth/<tenant>/`), but token validation accepts **both** that tenant-scoped issuer **and** the base Civic issuer (`https://auth.civic.com/oauth/`). This lets base-issuer tokens — such as `client_credentials` tokens and token-exchange output — and tenant-scoped tokens both validate against the same server. All Civic issuers share a single signing key, so accepting both does not weaken signature verification.
+
+To accept a wider or different set of issuers (for example, any Civic tenant in a multi-tenant deployment), provide an `issuerValidator` predicate, which fully overrides the default check:
+
+```typescript
+app.use(await auth({
+    allowDynamicClientRegistration: true,
+    issuerValidator: (iss) => iss?.startsWith("https://auth.civic.com/oauth/") ?? false,
+}));
+```
+
 ### 🔄 Legacy OAuth Support
 
 This library includes support for the [legacy MCP OAuth specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization) to ensure compatibility with existing clients while they transition to the latest specification.
@@ -436,6 +449,9 @@ The `auth()` middleware accepts the following configuration options:
 | `enableLegacyOAuth`              | `boolean`       | `true`                                                          | Enable legacy OAuth proxy mode (deprecated)            |
 | `stateStore`                     | `StateStore`    | In-memory store                                                 | Custom state store for OAuth flow (legacy mode only)   |
 | `jwks`                           | `object`        | -                                                               | Local JWKS for testing (bypasses remote JWKS fetch)    |
+| `disableClientIdVerification`    | `boolean`       | `false`                                                         | Skip the `client_id`/`tid` check                       |
+| `forceHttps`                     | `boolean`       | `false`                                                         | Force metadata URLs to `https` (e.g. behind a TLS-terminating proxy) |
+| `issuerValidator`                | `function`      | -                                                               | Predicate overriding the default issuer check; accept a token iff it returns `true` for the token's `iss` |
 
 ---
 

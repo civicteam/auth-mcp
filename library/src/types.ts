@@ -109,6 +109,20 @@ export interface CivicAuthOptions<
    *  Defaults to false.
    */
   forceHttps?: boolean;
+
+  /**
+   * Optional predicate to validate the token "iss" (issuer) claim.
+   * When provided, it fully overrides the default issuer check: a token is
+   * accepted iff this returns true for its issuer. Use this to accept tokens
+   * from multiple issuers (e.g. any Civic tenant) that share a signing key.
+   *
+   * When omitted, the default applies: the token issuer must equal the
+   * discovered (advertised) issuer, and — when using Civic Auth — the base
+   * Civic issuer is also accepted. This lets base-issuer tokens (e.g.
+   * client_credentials and token-exchange output) and tenant-scoped tokens
+   * both validate while discovery keeps advertising the tenant-scoped issuer.
+   */
+  issuerValidator?: (issuer: string | undefined) => boolean;
 }
 
 export interface OIDCWellKnownConfiguration {

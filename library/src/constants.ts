@@ -1,6 +1,13 @@
 export const DEFAULT_WELLKNOWN_URL = "https://auth.civic.com/oauth/.well-known/openid-configuration";
 
 /**
+ * The base (non-tenant-scoped) Civic Auth token issuer.
+ * Tenant-scoped issuers have the form `${CIVIC_BASE_ISSUER}<tenantId>/`.
+ * Derived from the default well-known URL so the two never drift apart.
+ */
+export const CIVIC_BASE_ISSUER = DEFAULT_WELLKNOWN_URL.replace(".well-known/openid-configuration", "");
+
+/**
  * Default scope for OAuth authentication
  */
 export const DEFAULT_SCOPES = ["openid", "profile", "email", "offline_access"];

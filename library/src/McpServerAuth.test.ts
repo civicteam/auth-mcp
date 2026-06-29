@@ -844,10 +844,90 @@ describe("McpServerAuth", () => {
       expect(jwtVerify).toHaveBeenCalledWith(
         "test.jwt.token",
         "mockLocalJWKS", // The mocked local JWKS
-        { issuer: mockOidcConfig.issuer }
+        { issuer: [mockOidcConfig.issuer, "https://auth.civic.com/oauth/"] }
       );
 
       expect(authInfo.token).toBe("test.jwt.token");
+    });
+  });
+
+  describe("issuer validation", () => {
+    it("accepts both the tenant-scoped issuer and the base Civic issuer when DCR is enabled", async () => {
+      const tenantIssuer = "https://auth.civic.com/oauth/custom-client-id/";
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({ ...mockOidcConfig, issuer: tenantIssuer }),
+      });
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          client_id: "custom-client-id",
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({
+        clientId: "custom-client-id",
+        allowDynamicClientRegistration: true,
+      });
+      await auth.handleRequest({
+        headers: { authorization: "Bearer valid.jwt.token" },
+      } as any);
+
+      // Discovery still advertises the tenant-scoped issuer, but token validation
+      // accepts both it and the base Civic issuer.
+      expect(jwtVerify).toHaveBeenCalledWith("valid.jwt.token", "mockJWKS", {
+        issuer: [tenantIssuer, "https://auth.civic.com/oauth/"],
+      });
+    });
+
+    it("uses issuerValidator to override the issuer pin when provided", async () => {
+      const foreignIssuer = "https://auth.civic.com/oauth/other-tenant/";
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          iss: foreignIssuer,
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const issuerValidator = vi.fn(() => true);
+      const auth = await McpServerAuth.init({ issuerValidator });
+      await auth.handleRequest({
+        headers: { authorization: "Bearer valid.jwt.token" },
+      } as any);
+
+      // No issuer pin is passed to jose; the predicate decides instead.
+      expect(jwtVerify).toHaveBeenCalledWith("valid.jwt.token", "mockJWKS", {});
+      expect(issuerValidator).toHaveBeenCalledWith(foreignIssuer);
+    });
+
+    it("rejects the token when issuerValidator returns false", async () => {
+      vi.mocked(jwtVerify).mockResolvedValue({
+        payload: {
+          sub: "user123",
+          iss: "https://evil.example.com/",
+          client_id: PUBLIC_CIVIC_CLIENT_ID,
+          tid: undefined,
+          scope: DEFAULT_SCOPES[0],
+          exp: 1234567890,
+        },
+        protectedHeader: {} as any,
+      } as any);
+
+      const auth = await McpServerAuth.init({ issuerValidator: () => false });
+      await expect(
+        auth.handleRequest({
+          headers: { authorization: "Bearer valid.jwt.token" },
+        } as any)
+      ).rejects.toThrow(JWTVerificationError);
     });
   });
 });

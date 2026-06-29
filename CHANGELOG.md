@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-06-29
+
+### Fixed
+- Token validation no longer rejects base-issuer tokens when dynamic client registration is enabled. Previously, with `allowDynamicClientRegistration: true`, the discovered issuer is tenant-scoped (e.g. `https://auth.civic.com/oauth/<tenant>/`) and `iss` was pinned to it alone, so base-issuer tokens — `client_credentials` and token-exchange output (`iss: https://auth.civic.com/oauth/`) — were rejected with `unexpected "iss" claim value`. Validation now accepts both the discovered tenant-scoped issuer and the base Civic issuer, while discovery continues to advertise the tenant-scoped issuer. All Civic issuers share one signing key, so this does not weaken signature verification.
+
+### Added
+- `issuerValidator` option: a predicate that fully overrides the default issuer check, accepting a token iff it returns `true` for the token's `iss`. Use it to accept a broader set of issuers (e.g. any Civic tenant) in multi-tenant deployments.
+
 ## [0.4.0] - 2026-06-12
 
 ### Added
