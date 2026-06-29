@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { createLocalJWKSet, createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
-import { DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
+import { CIVIC_BASE_ISSUER, DEFAULT_SCOPES, DEFAULT_WELLKNOWN_URL, PUBLIC_CIVIC_CLIENT_ID } from "./constants.js";
 import {
   type AccessTokenPayload,
   AuthenticationError,
@@ -9,6 +9,14 @@ import {
   JWTVerificationError,
   type OIDCWellKnownConfiguration,
 } from "./types.js";
+
+/**
+ * Whether the configured auth server is Civic.
+ * True when no wellKnownUrl is provided, or it is the default Civic URL.
+ */
+const isCivicAuthServer = <TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage>(
+  options: CivicAuthOptions<TAuthInfo, TRequest>
+): boolean => !options.wellKnownUrl || options.wellKnownUrl === DEFAULT_WELLKNOWN_URL;
 
 /**
  * Return the client ID that must be in the jwt (in either the tid or client_id field).
@@ -24,12 +32,35 @@ const getExpectedClientId = <TAuthInfo extends ExtendedAuthInfo, TRequest extend
     return options.clientId;
   }
 
-  // If wellKnownUrl is not provided (undefined) or is the default, we're using Civic
-  if (!options.wellKnownUrl || options.wellKnownUrl === DEFAULT_WELLKNOWN_URL) {
+  if (isCivicAuthServer(options)) {
     return PUBLIC_CIVIC_CLIENT_ID;
   }
 
   return undefined;
+};
+
+/**
+ * Build the set of token issuers to accept during verification.
+ *
+ * Always includes the discovered (advertised) issuer. When using Civic Auth,
+ * the base Civic issuer is also accepted so that base-issuer tokens (e.g.
+ * client_credentials and token-exchange output) and tenant-scoped tokens both
+ * validate, while discovery continues to advertise the tenant-scoped issuer.
+ * All Civic issuers share a single signing key, so relaxing the issuer pin does
+ * not weaken signature verification.
+ *
+ * @param oidcIssuer The issuer advertised by the discovered OIDC configuration
+ * @param options The auth options
+ */
+const getAcceptedIssuers = <TAuthInfo extends ExtendedAuthInfo, TRequest extends IncomingMessage = IncomingMessage>(
+  oidcIssuer: string,
+  options: CivicAuthOptions<TAuthInfo, TRequest>
+): string[] => {
+  const issuers = [oidcIssuer];
+  if (isCivicAuthServer(options)) {
+    issuers.push(CIVIC_BASE_ISSUER);
+  }
+  return [...new Set(issuers)];
 };
 
 /**
@@ -85,10 +116,12 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
   protected oidcConfig: OIDCWellKnownConfiguration;
   protected jwks: ReturnType<typeof createRemoteJWKSet> | ReturnType<typeof createLocalJWKSet>;
   protected options: CivicAuthOptions<TAuthInfo, TRequest>;
+  protected acceptedIssuers: string[];
 
   protected constructor(oidcConfig: OIDCWellKnownConfiguration, options: CivicAuthOptions<TAuthInfo, TRequest>) {
     this.oidcConfig = oidcConfig;
     this.options = options;
+    this.acceptedIssuers = getAcceptedIssuers(oidcConfig.issuer, options);
 
     // Use local JWKS if provided, otherwise fetch from remote
     if (options.jwks) {
@@ -178,10 +211,19 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
     const token = authHeader.substring(7);
 
     try {
-      // Verify the token - this will throw if invalid
-      const { payload } = await jwtVerify<AccessTokenPayload>(token, this.jwks, {
-        issuer: this.oidcConfig.issuer,
-      });
+      // When an issuerValidator is provided it fully owns issuer validation, so
+      // we skip jose's built-in issuer pin and apply the predicate afterwards.
+      // Otherwise we pin to the accepted issuer set (discovered + base Civic).
+      const { issuerValidator } = this.options;
+      const { payload } = await jwtVerify<AccessTokenPayload>(
+        token,
+        this.jwks,
+        issuerValidator ? {} : { issuer: this.acceptedIssuers }
+      );
+
+      if (issuerValidator && !issuerValidator(payload.iss)) {
+        throw new AuthenticationError(`Invalid "iss" claim value: ${payload.iss}`);
+      }
 
       if (!(this.options.disableClientIdVerification ?? false)) {
         verifyClientId(payload, getExpectedClientId(this.options));
