@@ -22,7 +22,7 @@ jobs:
         uses: pnpm/action-setup@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           # Node 24 ships npm >= 11.5.1, required for npm Trusted Publishing (OIDC)
           node-version: 24.x
