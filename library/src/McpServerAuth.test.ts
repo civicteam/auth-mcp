@@ -844,7 +844,10 @@ describe("McpServerAuth", () => {
       expect(jwtVerify).toHaveBeenCalledWith(
         "test.jwt.token",
         "mockLocalJWKS", // The mocked local JWKS
-        { issuer: [mockOidcConfig.issuer, "https://auth.civic.com/oauth/"] }
+        {
+          issuer: [mockOidcConfig.issuer, "https://auth.civic.com/oauth/"],
+          requiredClaims: ["exp"],
+        }
       );
 
       expect(authInfo.token).toBe("test.jwt.token");
@@ -881,6 +884,7 @@ describe("McpServerAuth", () => {
       // accepts both it and the base Civic issuer.
       expect(jwtVerify).toHaveBeenCalledWith("valid.jwt.token", "mockJWKS", {
         issuer: [tenantIssuer, "https://auth.civic.com/oauth/"],
+        requiredClaims: ["exp"],
       });
     });
 
@@ -905,7 +909,9 @@ describe("McpServerAuth", () => {
       } as any);
 
       // No issuer pin is passed to jose; the predicate decides instead.
-      expect(jwtVerify).toHaveBeenCalledWith("valid.jwt.token", "mockJWKS", {});
+      expect(jwtVerify).toHaveBeenCalledWith("valid.jwt.token", "mockJWKS", {
+        requiredClaims: ["exp"],
+      });
       expect(issuerValidator).toHaveBeenCalledWith(foreignIssuer);
     });
 
