@@ -215,11 +215,12 @@ export class McpServerAuth<TAuthInfo extends ExtendedAuthInfo, TRequest extends 
       // we skip jose's built-in issuer pin and apply the predicate afterwards.
       // Otherwise we pin to the accepted issuer set (discovered + base Civic).
       const { issuerValidator } = this.options;
-      const { payload } = await jwtVerify<AccessTokenPayload>(
-        token,
-        this.jwks,
-        issuerValidator ? {} : { issuer: this.acceptedIssuers }
-      );
+      const { payload } = await jwtVerify<AccessTokenPayload>(token, this.jwks, {
+        ...(issuerValidator ? {} : { issuer: this.acceptedIssuers }),
+        // jose checks exp when present, but a signed token that omits exp is
+        // otherwise treated as a live session forever.
+        requiredClaims: ["exp"],
+      });
 
       if (issuerValidator && !issuerValidator(payload.iss)) {
         throw new AuthenticationError(`Invalid "iss" claim value: ${payload.iss}`);

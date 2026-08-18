@@ -198,4 +198,38 @@ describe("JWKS Direct Integration", () => {
     // Verify JWKS URI was NOT fetched
     expect(jwksUriFetched).toBe(false);
   });
+
+  it("should reject a correctly signed JWT that omits exp", async () => {
+    const { jwks, jwt } = await generateTestSetup({
+      clientId: "test-client",
+      issuer: "https://auth.civic.com",
+      omitExpiration: true,
+    });
+
+    const mockOidcConfig = {
+      issuer: "https://auth.civic.com",
+      authorization_endpoint: "https://auth.civic.com/authorize",
+      token_endpoint: "https://auth.civic.com/token",
+      jwks_uri: "https://auth.civic.com/jwks",
+      scopes_supported: ["openid", "profile", "email"],
+    };
+
+    (global.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => mockOidcConfig,
+    });
+
+    const auth = await McpServerAuth.init({
+      clientId: "test-client",
+      jwks,
+    });
+
+    const mockRequest = {
+      headers: {
+        authorization: `Bearer ${jwt}`,
+      },
+    } as any;
+
+    await expect(auth.handleRequest(mockRequest)).rejects.toThrow(/exp/i);
+  });
 });

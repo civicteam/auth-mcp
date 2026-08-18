@@ -68,7 +68,8 @@ export const generateTestJWT = async (
     clientId?: string;
     scope?: string;
     issuer?: string;
-    expiresIn?: number;
+    expiresIn?: number | string;
+    omitExpiration?: boolean;
     kid?: string;
   } = {}
 ): Promise<string> => {
@@ -78,18 +79,22 @@ export const generateTestJWT = async (
     scope = "openid profile email",
     issuer = "https://auth.civic.com/oauth/",
     expiresIn = "10y", // 10 years
+    omitExpiration = false,
     kid = "test-key-1",
   } = options;
 
-  const jwt = new SignJWT({
+  let jwt = new SignJWT({
     scope,
     client_id: clientId,
   })
     .setProtectedHeader({ alg: "RS256", kid })
     .setIssuedAt()
     .setIssuer(issuer)
-    .setSubject(sub)
-    .setExpirationTime(expiresIn);
+    .setSubject(sub);
+
+  if (!omitExpiration) {
+    jwt = jwt.setExpirationTime(expiresIn);
+  }
 
   return jwt.sign(privateKey);
 };
@@ -100,7 +105,15 @@ export const generateTestJWT = async (
  * @returns Object containing keys, JWKS, and signed JWT
  */
 export const generateTestSetup = async (
-  options: { expiresIn?: number; sub?: string; clientId?: string; scope?: string; issuer?: string; kid?: string } = {}
+  options: {
+    expiresIn?: number | string;
+    omitExpiration?: boolean;
+    sub?: string;
+    clientId?: string;
+    scope?: string;
+    issuer?: string;
+    kid?: string;
+  } = {}
 ): Promise<{
   privateKey: string;
   jwks: {
