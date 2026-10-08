@@ -1,7 +1,4 @@
-import {
-  StreamableHTTPClientTransport,
-  type StreamableHTTPClientTransportOptions,
-} from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { StreamableHTTPClientTransport, type StreamableHTTPClientTransportOptions } from "@modelcontextprotocol/client";
 import type { CLIAuthProvider } from "../providers/index.js";
 
 type RestartableStreamableHTTPClientTransportOpts = StreamableHTTPClientTransportOptions & {

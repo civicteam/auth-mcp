@@ -1,4 +1,4 @@
-import type { OAuthTokens } from "@modelcontextprotocol/sdk/shared/auth.js";
+import type { OAuthTokens } from "@modelcontextprotocol/client";
 
 /**
  * Interface for token persistence strategies

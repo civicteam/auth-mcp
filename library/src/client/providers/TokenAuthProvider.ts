@@ -1,8 +1,4 @@
-import type {
-  OAuthClientInformation,
-  OAuthClientMetadata,
-  OAuthTokens,
-} from "@modelcontextprotocol/sdk/shared/auth.js";
+import type { OAuthClientInformation, OAuthClientMetadata, OAuthTokens } from "@modelcontextprotocol/client";
 import { CivicAuthProvider, type CivicAuthProviderOptions } from "./CivicAuthProvider.js";
 
 /**

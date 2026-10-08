@@ -3,9 +3,10 @@ import { dirname, join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * The server-side entry point (`@civic/auth-mcp`) must not depend on `@modelcontextprotocol/sdk`,
- * so that it can be used alongside the v2 MCP SDK packages (`@modelcontextprotocol/server` etc.)
- * or without any MCP SDK installed. Only `@civic/auth-mcp/client` may import the v1 SDK.
+ * The server-side entry point (`@civic/auth-mcp`) must not depend on any MCP SDK package
+ * (`@modelcontextprotocol/sdk`, `@modelcontextprotocol/server`, `@modelcontextprotocol/client`, ...),
+ * so that it can be used alongside any SDK generation, or with no MCP SDK installed at all.
+ * Only `@civic/auth-mcp/client` may import an MCP SDK (`@modelcontextprotocol/client` v2).
  */
 const SRC_DIR = __dirname;
 const CLIENT_DIR = join(SRC_DIR, "client");
@@ -53,7 +54,7 @@ describe("MCP SDK isolation", () => {
     expect(serverRoots.length).toBeGreaterThan(0);
   });
 
-  it("nothing reachable from the server-side entry point imports @modelcontextprotocol/sdk", () => {
+  it("nothing reachable from the server-side entry point imports an @modelcontextprotocol package", () => {
     const offenders = serverGraph.filter(importsMcpSdk).map((file) => relative(SRC_DIR, file));
     expect(offenders).toEqual([]);
   });

@@ -38,7 +38,7 @@ It works with any compliant OAuth2/OIDC provider, while being optimized for Civi
 npm install @civic/auth-mcp
 ```
 
-The server-side middleware has no dependency on an MCP SDK: it works alongside the v1 SDK (`@modelcontextprotocol/sdk`), the v2 SDK (`@modelcontextprotocol/server`), or no SDK at all. The `@civic/auth-mcp/client` entry point (see [Client Integration](#-client-integration)) additionally requires `@modelcontextprotocol/sdk` v1.
+The server-side middleware has no dependency on an MCP SDK: it works alongside the v2 SDK (`@modelcontextprotocol/server`), the v1 SDK (`@modelcontextprotocol/sdk`), or no SDK at all. The `@civic/auth-mcp/client` entry point (see [Client Integration](#-client-integration)) is built on the v2 client package, `@modelcontextprotocol/client`.
 
 Add the middleware to your express app:
 
@@ -193,11 +193,13 @@ try {
 
 This library includes a client SDK for easy integration with MCP servers, supporting various authentication methods.
 
-The client is built on the v1 MCP SDK, so install it alongside the library and import from the `@civic/auth-mcp/client` entry point:
+The client is built on the v2 MCP client package, so install it alongside the library and import from the `@civic/auth-mcp/client` entry point:
 
 ```bash
-npm install @civic/auth-mcp @modelcontextprotocol/sdk
+npm install @civic/auth-mcp @modelcontextprotocol/client
 ```
+
+`CLIClient` negotiates the protocol version automatically (`versionNegotiation: { mode: "auto" }`): it probes `server/discover` for servers on protocol revision 2026-07-28 and falls back to `initialize` for servers on earlier revisions. Pass your own `versionNegotiation` option to override this.
 
 ### 🖥️ CLI Client
 
@@ -294,7 +296,7 @@ Implement your own persistence strategy by implementing the `TokenPersistence` i
 
 ```typescript
 import { TokenPersistence } from "@civic/auth-mcp/client";
-import type { OAuthTokens } from "@modelcontextprotocol/sdk/shared/auth.js";
+import type { OAuthTokens } from "@modelcontextprotocol/client";
 
 class MyTokenPersistence implements TokenPersistence {
   async saveTokens(tokens: OAuthTokens): Promise<void> { ... }
@@ -317,8 +319,7 @@ Use this if you have an app that already handles authentication, e.g. via [Civic
 
 ```typescript
 import { TokenAuthProvider, RestartableStreamableHTTPClientTransport } from "@civic/auth-mcp/client";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 
 // Create with pre-obtained token
 const authProvider = new TokenAuthProvider("your-jwt-token");

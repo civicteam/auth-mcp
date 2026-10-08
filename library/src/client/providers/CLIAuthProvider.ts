@@ -4,9 +4,11 @@ import http from "node:http";
 import type { AddressInfo } from "node:net";
 import url from "node:url";
 import { promisify } from "node:util";
-import type { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import type { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { OAuthClientMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
+import type {
+  OAuthClientMetadata,
+  SSEClientTransport,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import escapeHtml from "escape-html";
 import { DEFAULT_CALLBACK_PORT, DEFAULT_SCOPES } from "../../constants.js";
 import { CivicAuthProvider, type CivicAuthProviderOptions } from "./CivicAuthProvider.js";
@@ -168,6 +170,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
 
         if (parsedUrl.pathname === "/callback") {
           const code = parsedUrl.query.code as string;
+          const iss = parsedUrl.query.iss as string | undefined;
           const error = parsedUrl.query.error as string;
 
           if (error) {
@@ -181,7 +184,7 @@ export class CLIAuthProvider extends CivicAuthProvider {
             // Call finishAuth on the transport if set. This triggers the token exchange
             if (this.transport) {
               this.transport
-                .finishAuth(code)
+                .finishAuth(code, iss)
                 .then(() => this.authorizationCodeResolve?.(code))
                 .catch((error) => {
                   console.error("Error in finishAuth:", error);

@@ -5,12 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.0] - 2026-10-08
+## [1.0.0] - 2026-10-08
+
+This release removes the hard dependency on the v1 MCP TypeScript SDK (`@modelcontextprotocol/sdk`) so the library can be used by servers and clients on the v2 SDK packages (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`, `@modelcontextprotocol/core`). The v1 SDK line does not speak protocol revision 2026-07-28 and is scheduled to leave support.
 
 ### Changed
-- **BREAKING:** `@modelcontextprotocol/sdk` is no longer a required peer dependency. The server-side entry point (`@civic/auth-mcp`) no longer imports the SDK at all, so the library can be installed alongside the v2 MCP SDK packages (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`, `@modelcontextprotocol/core`) — or with no MCP SDK — without peer dependency conflicts. The SDK remains an *optional* peer (`^1.26.0`) that is only needed by the `@civic/auth-mcp/client` entry point.
-- **BREAKING:** The root entry point no longer re-exports the client SDK (`CLIClient`, `CLIAuthProvider`, `TokenAuthProvider`, `RestartableStreamableHTTPClientTransport`, token persistence, CIMD document helpers). Import these from `@civic/auth-mcp/client` instead, as documented. This is what allows the root entry to load without `@modelcontextprotocol/sdk` installed.
+- **BREAKING:** `@modelcontextprotocol/sdk` is no longer a peer dependency. The server-side entry point (`@civic/auth-mcp`) imports no MCP SDK at all — at runtime or in its type declarations — so a server on `@modelcontextprotocol/server` 2.x installs it with no v1 SDK left in the lockfile.
+- **BREAKING:** `@civic/auth-mcp/client` now targets `@modelcontextprotocol/client` 2.x, declared as an optional peer (`^2.0.0`). Consumers of the client must migrate to the v2 client package; those not ready should stay on 0.5.x.
+  - `CLIClient` constructs the underlying `Client` with `versionNegotiation: { mode: "auto" }` by default, so it probes `server/discover` (protocol revision 2026-07-28) and falls back to `initialize` for servers on earlier revisions. Pass `versionNegotiation` in the client options to override.
+  - `CLIClient` detects the auth redirect via the SDK's `UnauthorizedError` class instead of matching an error message.
+  - `CLIAuthProvider` forwards the RFC 9207 `iss` callback parameter to `finishAuth` when the authorization server sends one.
+  - `TokenPersistence` and the auth providers use the `OAuthTokens`, `OAuthClientMetadata` and `OAuthClientInformation` types from `@modelcontextprotocol/client`.
+- **BREAKING:** The root entry point no longer re-exports the client (`CLIClient`, `CLIAuthProvider`, `TokenAuthProvider`, `RestartableStreamableHTTPClientTransport`, token persistence, CIMD document helpers). Import these from `@civic/auth-mcp/client` instead, as documented. This is what allows the root entry to load without any MCP SDK installed.
 - `AuthInfo` is now defined and exported by this library instead of being imported from the SDK. It is structurally identical to the SDK's `AuthInfo` (v1 and v2), so `req.auth` / `ExtendedAuthInfo` values remain directly usable with either SDK's transports.
+- `ClientIdMetadataDocument` is now a local interface rather than being derived from the SDK's `OAuthClientMetadata`; it remains structurally assignable to it.
+
 
 ## [0.5.0] - 2026-06-29
 
