@@ -29,6 +29,7 @@ This release removes the hard dependency on the v1 MCP TypeScript SDK (`@modelco
   - sucrase 3.35.1 (via tsup) replaced glob/minimatch with tinyglobby, removing brace-expansion from the tree entirely (GHSA-3jxr-9vmj-r5cp, GHSA-mh99-v99m-4gvg, GHSA-rgw5-rvv9-x895, GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr)
 - Removed the brace-expansion and form-data pnpm overrides: both resolve to patched versions naturally now, and pnpm 10 no longer reads overrides from the `pnpm` field in `package.json` anyway
 - Refreshed remaining dev dependency ranges to current minors (biome 2.5, turbo 2.11, typescript 5.9, supertest 7.3, tsx 4.23, @types/node 24.19)
+
 ## [0.5.0] - 2026-06-29
 
 ### Fixed
@@ -169,6 +170,8 @@ This release removes the hard dependency on the v1 MCP TypeScript SDK (`@modelco
 ### Changed
 - Version bump, readme and spec cleanup
 
+[1.0.0]: https://github.com/civicteam/auth-mcp/compare/v0.5.0...v1.0.0
+[0.5.0]: https://github.com/civicteam/auth-mcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/civicteam/auth-mcp/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/civicteam/auth-mcp/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/civicteam/auth-mcp/compare/v0.2.9...v0.3.0
