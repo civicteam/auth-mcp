@@ -19,6 +19,7 @@ This release removes the hard dependency on the v1 MCP TypeScript SDK (`@modelco
 - **BREAKING:** The root entry point no longer re-exports the client (`CLIClient`, `CLIAuthProvider`, `TokenAuthProvider`, `RestartableStreamableHTTPClientTransport`, token persistence, CIMD document helpers). Import these from `@civic/auth-mcp/client` instead, as documented. This is what allows the root entry to load without any MCP SDK installed.
 - `AuthInfo` is now defined and exported by this library instead of being imported from the SDK. It is structurally identical to the SDK's `AuthInfo` (v1 and v2), so `req.auth` / `ExtendedAuthInfo` values remain directly usable with either SDK's transports.
 - `ClientIdMetadataDocument` is now a local interface rather than being derived from the SDK's `OAuthClientMetadata`; it remains structurally assignable to it.
+- The `whoami` server example and the README Express example now use the v2 server packages (`@modelcontextprotocol/server` + `@modelcontextprotocol/node`). Note that on v2 the authenticated user is read from `ctx.http.authInfo` inside tool handlers (v1: `extra.authInfo`).
 
 
 ## [0.5.0] - 2026-06-29

@@ -60,13 +60,13 @@ That's it!
 
 ### 🚀 Express Middleware (Recommended)
 
-The fastest way to secure an MCP server. Works smoothly with [Anthropic's SDK](https://www.npmjs.com/package/@modelcontextprotocol/sdk).
+The fastest way to secure an MCP server. Works smoothly with the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2 (`@modelcontextprotocol/server` with the `@modelcontextprotocol/node` transport) and with the v1 SDK (`@modelcontextprotocol/sdk`).
 
 ```typescript
 import express from "express";
 import {auth} from "@civic/auth-mcp";
-import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
+import {NodeStreamableHTTPServerTransport} from "@modelcontextprotocol/node";
+import {McpServer} from "@modelcontextprotocol/server";
 
 // Create your Express app
 const app = express();
@@ -82,13 +82,14 @@ async function getServer() {
     });
 
     // Register your tools
-    server.tool(
+    server.registerTool(
         "tool-name",
-        "Example tool",
-        {},
-        async (_, extra) => {
-            // Access the authenticated user's information
-            const user = extra.authInfo?.extra?.sub;
+        { description: "Example tool" },
+        async (ctx) => {
+            // Access the authenticated user's information.
+            // The middleware sets req.auth; the transport forwards it as ctx.http.authInfo.
+            // (On the v1 SDK, use server.tool(...) and read extra.authInfo instead.)
+            const user = ctx.http?.authInfo?.extra?.sub;
             return {
                 content: [
                     {
@@ -102,7 +103,7 @@ async function getServer() {
 
     // Set up the transport layer
     // In production you may need session management
-    const transport = new StreamableHTTPServerTransport({
+    const transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
     });
 

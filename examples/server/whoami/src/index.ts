@@ -1,6 +1,6 @@
 import { auth } from "@civic/auth-mcp";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { McpServer } from "@modelcontextprotocol/server";
 import cors from "cors";
 import express from "express";
 
@@ -23,9 +23,10 @@ async function getServer() {
   });
 
   // Register your tools
-  server.tool("whoami", "Get information about the current user", {}, async (_, extra) => {
-    // Access the authenticated user's information
-    const user = extra.authInfo?.extra?.sub;
+  server.registerTool("whoami", { description: "Get information about the current user" }, async (ctx) => {
+    // Access the authenticated user's information.
+    // The auth middleware attaches it to req.auth, which the transport forwards as ctx.http.authInfo.
+    const user = ctx.http?.authInfo?.extra?.sub;
     return {
       content: [
         {
@@ -38,7 +39,7 @@ async function getServer() {
 
   // Set up the transport layer
   // In production you may need session management
-  const transport = new StreamableHTTPServerTransport({
+  const transport = new NodeStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
 
