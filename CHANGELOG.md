@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-08
+
+### Changed
+- **BREAKING:** `@modelcontextprotocol/sdk` is no longer a required peer dependency. The server-side entry point (`@civic/auth-mcp`) no longer imports the SDK at all, so the library can be installed alongside the v2 MCP SDK packages (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`, `@modelcontextprotocol/core`) — or with no MCP SDK — without peer dependency conflicts. The SDK remains an *optional* peer (`^1.26.0`) that is only needed by the `@civic/auth-mcp/client` entry point.
+- **BREAKING:** The root entry point no longer re-exports the client SDK (`CLIClient`, `CLIAuthProvider`, `TokenAuthProvider`, `RestartableStreamableHTTPClientTransport`, token persistence, CIMD document helpers). Import these from `@civic/auth-mcp/client` instead, as documented. This is what allows the root entry to load without `@modelcontextprotocol/sdk` installed.
+- `AuthInfo` is now defined and exported by this library instead of being imported from the SDK. It is structurally identical to the SDK's `AuthInfo` (v1 and v2), so `req.auth` / `ExtendedAuthInfo` values remain directly usable with either SDK's transports.
+
 ## [0.5.0] - 2026-06-29
 
 ### Fixed

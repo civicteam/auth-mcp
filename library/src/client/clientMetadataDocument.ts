@@ -1,15 +1,24 @@
-import type { OAuthClientMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
-
 /**
  * An OAuth Client ID Metadata Document (CIMD) as defined by
  * draft-ietf-oauth-client-id-metadata-document and adopted by MCP (SEP-991).
  * The document is hosted at an HTTPS URL which doubles as the OAuth client_id.
+ *
+ * The fields are the RFC 7591 client metadata fields this library emits. The type is
+ * defined locally (rather than derived from an MCP SDK type) so that the server-side
+ * `clientMetadataHandler` carries no dependency on `@modelcontextprotocol/sdk`; it is
+ * structurally assignable to the SDK's `OAuthClientMetadata`.
  */
-export type ClientIdMetadataDocument = OAuthClientMetadata & {
+export interface ClientIdMetadataDocument {
   client_id: string;
   client_name: string;
   redirect_uris: string[];
-};
+  grant_types: string[];
+  response_types: string[];
+  token_endpoint_auth_method: string;
+  client_uri?: string;
+  logo_uri?: string;
+  scope?: string;
+}
 
 export interface ClientMetadataDocumentOptions {
   /**

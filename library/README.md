@@ -35,8 +35,10 @@ It works with any compliant OAuth2/OIDC provider, while being optimized for Civi
  Install the dependencies:
 
 ```bash
-npm install @civic/auth-mcp @modelcontextprotocol/sdk
+npm install @civic/auth-mcp
 ```
+
+The server-side middleware has no dependency on an MCP SDK: it works alongside the v1 SDK (`@modelcontextprotocol/sdk`), the v2 SDK (`@modelcontextprotocol/server`), or no SDK at all. The `@civic/auth-mcp/client` entry point (see [Client Integration](#-client-integration)) additionally requires `@modelcontextprotocol/sdk` v1.
 
 Add the middleware to your express app:
 
@@ -190,6 +192,12 @@ try {
 ## 💻 Client Integration
 
 This library includes a client SDK for easy integration with MCP servers, supporting various authentication methods.
+
+The client is built on the v1 MCP SDK, so install it alongside the library and import from the `@civic/auth-mcp/client` entry point:
+
+```bash
+npm install @civic/auth-mcp @modelcontextprotocol/sdk
+```
 
 ### 🖥️ CLI Client
 

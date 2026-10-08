@@ -1,5 +1,4 @@
 import type { IncomingMessage } from "node:http";
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { JWTPayload } from "jose";
 import type { StateStore } from "./legacy";
 
@@ -137,6 +136,48 @@ export interface OIDCWellKnownConfiguration {
   introspection_endpoint?: string;
   revocation_endpoint?: string;
   registration_endpoint?: string;
+}
+
+/**
+ * Information about a validated access token, attached to the request as `req.auth`.
+ *
+ * This is intentionally defined locally (rather than imported from an MCP SDK) so that
+ * the server-side entry point has no dependency on `@modelcontextprotocol/sdk`.
+ * It is structurally identical to the `AuthInfo` type of both the v1 SDK
+ * (`@modelcontextprotocol/sdk/server/auth/types.js`) and the v2 SDK (`@modelcontextprotocol/server`),
+ * so values of this type can be passed straight to either SDK's transports and handlers.
+ */
+export interface AuthInfo {
+  /**
+   * The access token.
+   */
+  token: string;
+
+  /**
+   * The client ID associated with this token.
+   */
+  clientId: string;
+
+  /**
+   * Scopes associated with this token.
+   */
+  scopes: string[];
+
+  /**
+   * When the token expires (in seconds since epoch).
+   */
+  expiresAt?: number;
+
+  /**
+   * The RFC 8707 resource server identifier for which this token is valid.
+   * If set, this MUST match the MCP server's resource identifier (minus hash fragment).
+   */
+  resource?: URL;
+
+  /**
+   * Additional data associated with the token.
+   */
+  extra?: Record<string, unknown>;
 }
 
 export interface ExtendedAuthInfo extends AuthInfo {
