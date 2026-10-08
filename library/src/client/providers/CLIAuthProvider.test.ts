@@ -373,7 +373,31 @@ describe("CLIAuthProvider", () => {
       // Verify response was sent
       expect(mockRes.writeHead).toHaveBeenCalledWith(200, { "Content-Type": "text/html" });
       expect(mockRes.end).toHaveBeenCalled();
-      expect(mockTransport.finishAuth).toHaveBeenCalledWith("test-auth-code");
+      expect(mockTransport.finishAuth).toHaveBeenCalledWith("test-auth-code", undefined);
+    });
+
+    it("should forward the iss parameter from the callback to finishAuth", async () => {
+      const testProvider = new CLIAuthProvider({
+        clientId: "test-client-id",
+        scope: DEFAULT_SCOPES.join(" "),
+        callbackPort: 8080,
+      });
+
+      const cleanMockServer = createMockServer();
+      vi.mocked(http.createServer).mockReturnValue(cleanMockServer as any);
+
+      const mockTransport = {
+        finishAuth: vi.fn().mockResolvedValue(undefined),
+      } as any;
+      testProvider.registerTransport(mockTransport);
+
+      await testProvider.redirectToAuthorization(new URL("https://auth.example.com/authorize"));
+
+      // RFC 9207: the authorization server identifies itself via the iss parameter
+      simulateCallback("/callback?code=test-auth-code&iss=https%3A%2F%2Fauth.example.com%2F");
+
+      await expect(testProvider.waitForAuthorizationCode()).resolves.toBe("test-auth-code");
+      expect(mockTransport.finishAuth).toHaveBeenCalledWith("test-auth-code", "https://auth.example.com/");
     });
 
     it("should handle callback errors", async () => {

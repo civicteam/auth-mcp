@@ -18,7 +18,7 @@ This repository contains the Civic Auth MCP library and examples for adding secu
 
 ```bash
 # Install the library
-pnpm add @civic/auth-mcp @modelcontextprotocol/sdk
+pnpm add @civic/auth-mcp
 
 # Run examples
 pnpm install

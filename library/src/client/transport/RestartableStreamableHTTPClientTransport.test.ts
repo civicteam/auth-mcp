@@ -2,14 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CLIAuthProvider } from "../providers/index.js";
 import { RestartableStreamableHTTPClientTransport } from "./RestartableStreamableHTTPClientTransport.js";
 
-// Mock StreamableHTTPClientTransport with specific path
-vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => {
+// Mock StreamableHTTPClientTransport, keeping the rest of the SDK module intact
+vi.mock("@modelcontextprotocol/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@modelcontextprotocol/client")>();
   const StreamableHTTPClientTransport = vi.fn(function (this: any) {
     this.start = vi.fn().mockResolvedValue(undefined);
     this.close = vi.fn().mockResolvedValue(undefined);
     this.finishAuth = vi.fn().mockResolvedValue(undefined);
   });
-  return { StreamableHTTPClientTransport };
+  return { ...actual, StreamableHTTPClientTransport };
 });
 
 // Don't mock CLIAuthProvider - use it directly
@@ -24,9 +25,7 @@ describe("RestartableStreamableHTTPClientTransport", () => {
     vi.clearAllMocks();
 
     // Get the mocked StreamableHTTPClientTransport
-    const { StreamableHTTPClientTransport } = vi.mocked(
-      await import("@modelcontextprotocol/sdk/client/streamableHttp.js")
-    );
+    const { StreamableHTTPClientTransport } = vi.mocked(await import("@modelcontextprotocol/client"));
 
     (StreamableHTTPClientTransport as any).mockImplementation(function (this: any) {
       this.start = vi.fn().mockResolvedValue(undefined);

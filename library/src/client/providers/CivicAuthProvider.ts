@@ -1,9 +1,9 @@
-import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
 import type {
   OAuthClientInformation,
   OAuthClientMetadata,
+  OAuthClientProvider,
   OAuthTokens,
-} from "@modelcontextprotocol/sdk/shared/auth.js";
+} from "@modelcontextprotocol/client";
 import { assertValidClientMetadataUrl } from "../clientMetadataDocument.js";
 import { InMemoryTokenPersistence, type TokenPersistence } from "./persistence/index.js";
 

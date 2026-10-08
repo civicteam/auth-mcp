@@ -1,6 +1,6 @@
 {
   "name": "@civic/auth-mcp",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "Civic Auth integration for MCP servers",
   "keywords": [
     "mcp",
@@ -60,27 +60,30 @@
   },
   "dependencies": {
     "escape-html": "^1.0.3",
-    "jose": "^6.0.11"
+    "jose": "^6.2.12"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@types/escape-html": "^1.0.4",
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.0.7",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.1",
     "@types/supertest": "^6.0.3",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.11",
     "express": "^5.2.1",
-    "supertest": "^7.2.2",
+    "supertest": "^7.3.1",
     "tsup": "^8.5.1",
-    "typescript": "^5.8.3",
-    "vite": "8.0.16",
-    "vitest": "^4.1.2"
+    "typescript": "^5.9.3",
+    "vite": "8.3.4",
+    "vitest": "^4.1.11"
   },
   "peerDependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@modelcontextprotocol/client": "^2.0.0",
     "express": "^4.17.0 || ^5.0.0"
   },
   "peerDependenciesMeta": {
+    "@modelcontextprotocol/client": {
+      "optional": true
+    },
     "express": {
       "optional": true
     }

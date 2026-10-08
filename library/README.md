@@ -35,8 +35,10 @@ It works with any compliant OAuth2/OIDC provider, while being optimized for Civi
  Install the dependencies:
 
 ```bash
-npm install @civic/auth-mcp @modelcontextprotocol/sdk
+npm install @civic/auth-mcp
 ```
+
+The server-side middleware has no dependency on an MCP SDK: it works alongside the v2 SDK (`@modelcontextprotocol/server`), the v1 SDK (`@modelcontextprotocol/sdk`), or no SDK at all. The `@civic/auth-mcp/client` entry point (see [Client Integration](#-client-integration)) is built on the v2 client package, `@modelcontextprotocol/client`.
 
 Add the middleware to your express app:
 
@@ -58,13 +60,13 @@ That's it!
 
 ### 🚀 Express Middleware (Recommended)
 
-The fastest way to secure an MCP server. Works smoothly with [Anthropic's SDK](https://www.npmjs.com/package/@modelcontextprotocol/sdk).
+The fastest way to secure an MCP server. Works smoothly with the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) v2 (`@modelcontextprotocol/server` with the `@modelcontextprotocol/node` transport) and with the v1 SDK (`@modelcontextprotocol/sdk`).
 
 ```typescript
 import express from "express";
 import {auth} from "@civic/auth-mcp";
-import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
+import {NodeStreamableHTTPServerTransport} from "@modelcontextprotocol/node";
+import {McpServer} from "@modelcontextprotocol/server";
 
 // Create your Express app
 const app = express();
@@ -80,13 +82,14 @@ async function getServer() {
     });
 
     // Register your tools
-    server.tool(
+    server.registerTool(
         "tool-name",
-        "Example tool",
-        {},
-        async (_, extra) => {
-            // Access the authenticated user's information
-            const user = extra.authInfo?.extra?.sub;
+        { description: "Example tool" },
+        async (ctx) => {
+            // Access the authenticated user's information.
+            // The middleware sets req.auth; the transport forwards it as ctx.http.authInfo.
+            // (On the v1 SDK, use server.tool(...) and read extra.authInfo instead.)
+            const user = ctx.http?.authInfo?.extra?.sub;
             return {
                 content: [
                     {
@@ -100,7 +103,7 @@ async function getServer() {
 
     // Set up the transport layer
     // In production you may need session management
-    const transport = new StreamableHTTPServerTransport({
+    const transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
     });
 
@@ -190,6 +193,14 @@ try {
 ## 💻 Client Integration
 
 This library includes a client SDK for easy integration with MCP servers, supporting various authentication methods.
+
+The client is built on the v2 MCP client package, so install it alongside the library and import from the `@civic/auth-mcp/client` entry point:
+
+```bash
+npm install @civic/auth-mcp @modelcontextprotocol/client
+```
+
+`CLIClient` negotiates the protocol version automatically (`versionNegotiation: { mode: "auto" }`): it probes `server/discover` for servers on protocol revision 2026-07-28 and falls back to `initialize` for servers on earlier revisions. Pass your own `versionNegotiation` option to override this.
 
 ### 🖥️ CLI Client
 
@@ -286,7 +297,7 @@ Implement your own persistence strategy by implementing the `TokenPersistence` i
 
 ```typescript
 import { TokenPersistence } from "@civic/auth-mcp/client";
-import type { OAuthTokens } from "@modelcontextprotocol/sdk/shared/auth.js";
+import type { OAuthTokens } from "@modelcontextprotocol/client";
 
 class MyTokenPersistence implements TokenPersistence {
   async saveTokens(tokens: OAuthTokens): Promise<void> { ... }
@@ -309,8 +320,7 @@ Use this if you have an app that already handles authentication, e.g. via [Civic
 
 ```typescript
 import { TokenAuthProvider, RestartableStreamableHTTPClientTransport } from "@civic/auth-mcp/client";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 
 // Create with pre-obtained token
 const authProvider = new TokenAuthProvider("your-jwt-token");

@@ -1,21 +1,30 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { Client, UnauthorizedError } from "@modelcontextprotocol/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CLIClient } from "./CLIClient.js";
 import type { CLIAuthProvider } from "./providers/index.js";
 import type { RestartableStreamableHTTPClientTransport } from "./transport/index.js";
 
-// Mock the parent Client class
-vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: class MockClient {
-    async connect(transport: any) {
-      // Simulate different scenarios based on test needs
-      if (transport._shouldFailAuth) {
-        throw new Error("Unauthorized");
+// Mock the parent Client class, keeping the real UnauthorizedError so instanceof checks hold
+vi.mock("@modelcontextprotocol/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@modelcontextprotocol/client")>();
+  return {
+    ...actual,
+    Client: class MockClient {
+      constructor(
+        public clientInfo: unknown,
+        public options: unknown
+      ) {}
+
+      async connect(transport: any) {
+        // Simulate different scenarios based on test needs
+        if (transport._shouldFailAuth) {
+          throw new actual.UnauthorizedError("Authentication requires user authorization - redirect initiated");
+        }
+        // Success case - do nothing
       }
-      // Success case - do nothing
-    }
-  },
-}));
+    },
+  };
+});
 
 describe("CLIClient", () => {
   let client: CLIClient;
@@ -42,6 +51,20 @@ describe("CLIClient", () => {
     client = new CLIClient({ name: "test-client", version: "1.0.0" }, { capabilities: {} });
   });
 
+  describe("constructor", () => {
+    it("should default protocol version negotiation to auto", () => {
+      expect((client as any).options).toEqual({ capabilities: {}, versionNegotiation: { mode: "auto" } });
+    });
+
+    it("should let callers override version negotiation", () => {
+      const pinned = new CLIClient(
+        { name: "test-client", version: "1.0.0" },
+        { versionNegotiation: { mode: "legacy" } }
+      );
+      expect((pinned as any).options).toEqual({ versionNegotiation: { mode: "legacy" } });
+    });
+  });
+
   describe("connect", () => {
     it("should connect successfully on first try", async () => {
       await client.connect(mockTransport);
@@ -59,7 +82,7 @@ describe("CLIClient", () => {
       vi.spyOn(Client.prototype, "connect").mockImplementation(async () => {
         callCount++;
         if (callCount === 1) {
-          throw new Error("Unauthorized");
+          throw new UnauthorizedError("Authentication requires user authorization - redirect initiated");
         }
         // Second call succeeds
       });
@@ -83,6 +106,15 @@ describe("CLIClient", () => {
       expect(mockTransport.finishAuth).not.toHaveBeenCalled();
     });
 
+    it("should not treat a plain Error with an auth-like message as an auth redirect", async () => {
+      vi.spyOn(Client.prototype, "connect").mockRejectedValue(new Error("Unauthorized"));
+
+      await expect(client.connect(mockTransport)).rejects.toThrow("Unauthorized");
+
+      expect(mockAuthProvider.waitForAuthorizationCode).not.toHaveBeenCalled();
+      expect(Client.prototype.connect).toHaveBeenCalledTimes(1);
+    });
+
     it("should handle missing auth provider", async () => {
       // Create transport without auth provider
       const transportWithoutAuth = {
@@ -93,7 +125,9 @@ describe("CLIClient", () => {
 
       // Override connect to throw auth error
       const originalConnect = Client.prototype.connect;
-      Client.prototype.connect = vi.fn().mockRejectedValue(new Error("Unauthorized"));
+      Client.prototype.connect = vi
+        .fn()
+        .mockRejectedValue(new UnauthorizedError("Authentication requires user authorization - redirect initiated"));
 
       await expect(client.connect(transportWithoutAuth)).rejects.toThrow();
 

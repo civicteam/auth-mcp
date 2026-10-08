@@ -7,7 +7,6 @@ import { resolveBaseUrl } from "./resolveUrl.js";
 import type { CivicAuthOptions, ExtendedAuthInfo, OIDCWellKnownConfiguration } from "./types.js";
 import { AuthenticationError } from "./types.js";
 
-export * from "./client/index.js";
 export { type ClientMetadataHandlerOptions, clientMetadataHandler } from "./clientMetadataHandler.js";
 export * from "./constants.js";
 export { InMemoryStateStore } from "./legacy/StateStore.js";

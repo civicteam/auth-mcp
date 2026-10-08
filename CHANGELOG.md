@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-10-08
+
+This release removes the hard dependency on the v1 MCP TypeScript SDK (`@modelcontextprotocol/sdk`) so the library can be used by servers and clients on the v2 SDK packages (`@modelcontextprotocol/server`, `@modelcontextprotocol/client`, `@modelcontextprotocol/core`). The v1 SDK line does not speak protocol revision 2026-07-28 and is scheduled to leave support.
+
+### Changed
+- **BREAKING:** `@modelcontextprotocol/sdk` is no longer a peer dependency. The server-side entry point (`@civic/auth-mcp`) imports no MCP SDK at all — at runtime or in its type declarations — so a server on `@modelcontextprotocol/server` 2.x installs it with no v1 SDK left in the lockfile.
+- **BREAKING:** `@civic/auth-mcp/client` now targets `@modelcontextprotocol/client` 2.x, declared as an optional peer (`^2.0.0`). Consumers of the client must migrate to the v2 client package; those not ready should stay on 0.5.x.
+  - `CLIClient` constructs the underlying `Client` with `versionNegotiation: { mode: "auto" }` by default, so it probes `server/discover` (protocol revision 2026-07-28) and falls back to `initialize` for servers on earlier revisions. Pass `versionNegotiation` in the client options to override.
+  - `CLIClient` detects the auth redirect via the SDK's `UnauthorizedError` class instead of matching an error message.
+  - `CLIAuthProvider` forwards the RFC 9207 `iss` callback parameter to `finishAuth` when the authorization server sends one.
+  - `TokenPersistence` and the auth providers use the `OAuthTokens`, `OAuthClientMetadata` and `OAuthClientInformation` types from `@modelcontextprotocol/client`.
+- **BREAKING:** The root entry point no longer re-exports the client (`CLIClient`, `CLIAuthProvider`, `TokenAuthProvider`, `RestartableStreamableHTTPClientTransport`, token persistence, CIMD document helpers). Import these from `@civic/auth-mcp/client` instead, as documented. This is what allows the root entry to load without any MCP SDK installed.
+- `AuthInfo` is now defined and exported by this library instead of being imported from the SDK. It is structurally identical to the SDK's `AuthInfo` (v1 and v2), so `req.auth` / `ExtendedAuthInfo` values remain directly usable with either SDK's transports.
+- `ClientIdMetadataDocument` is now a local interface rather than being derived from the SDK's `OAuthClientMetadata`; it remains structurally assignable to it.
+- The `whoami` server example and the README Express example now use the v2 server packages (`@modelcontextprotocol/server` + `@modelcontextprotocol/node`). Note that on v2 the authenticated user is read from `ctx.http.authInfo` inside tool handlers (v1: `extra.authInfo`).
+
+### Security
+- Fixed all `pnpm audit` findings (1 critical, 9 high, 6 moderate, 1 low) through dependency updates rather than overrides; all were in dev or transitive dependencies, and the published library's runtime dependencies are unchanged apart from a floor bump of jose to ^6.2.12:
+  - express transitive deps: proxy-addr 2.0.8 (GHSA-jqcg-44mw-7w3h, critical), qs 6.16.0 (GHSA-4mjr-xmp4-gh2g, GHSA-x5fp-wj9c-mxmx), body-parser 2.3.0 (GHSA-v422-hmwv-36x6)
+  - vite 8.3.4, which brings postcss 8.5.29 (GHSA-r28c-9q8g-f849, GHSA-fxqj-rqcc-2cmp), nanoid 3.3.20 (GHSA-28wg-ghj8-5hjv, GHSA-2v37-7h3g-55p8) and source-map-js 1.2.2 (GHSA-68fv-2mgg-jv7q)
+  - vitest and @vitest/coverage-v8 4.1.11 (GHSA-82fw-gwwq-j7x9)
+  - sucrase 3.35.1 (via tsup) replaced glob/minimatch with tinyglobby, removing brace-expansion from the tree entirely (GHSA-3jxr-9vmj-r5cp, GHSA-mh99-v99m-4gvg, GHSA-rgw5-rvv9-x895, GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr)
+- Removed the brace-expansion and form-data pnpm overrides: both resolve to patched versions naturally now, and pnpm 10 no longer reads overrides from the `pnpm` field in `package.json` anyway
+- Refreshed remaining dev dependency ranges to current minors (biome 2.5, turbo 2.11, typescript 5.9, supertest 7.3, tsx 4.23, @types/node 24.19)
+
 ## [0.5.0] - 2026-06-29
 
 ### Fixed
@@ -145,6 +170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version bump, readme and spec cleanup
 
+[1.0.0]: https://github.com/civicteam/auth-mcp/compare/v0.5.0...v1.0.0
+[0.5.0]: https://github.com/civicteam/auth-mcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/civicteam/auth-mcp/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/civicteam/auth-mcp/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/civicteam/auth-mcp/compare/v0.2.9...v0.3.0
