@@ -22,14 +22,13 @@ This release removes the hard dependency on the v1 MCP TypeScript SDK (`@modelco
 - The `whoami` server example and the README Express example now use the v2 server packages (`@modelcontextprotocol/server` + `@modelcontextprotocol/node`). Note that on v2 the authenticated user is read from `ctx.http.authInfo` inside tool handlers (v1: `extra.authInfo`).
 
 ### Security
-- Fixed all `pnpm audit` findings (1 critical, 9 high, 6 moderate, 1 low), all in dev or transitive dependencies:
-  - proxy-addr (GHSA-jqcg-44mw-7w3h, critical), qs (GHSA-4mjr-xmp4-gh2g, GHSA-x5fp-wj9c-mxmx) and body-parser (GHSA-v422-hmwv-36x6) via pnpm overrides to 2.0.8, 6.16.0 and 2.3.0
-  - brace-expansion DoS advisories GHSA-3jxr-9vmj-r5cp, GHSA-mh99-v99m-4gvg, GHSA-rgw5-rvv9-x895, GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7 and GHSA-q2hr-2g5m-vwhr via override to 5.0.12
-  - postcss (GHSA-r28c-9q8g-f849, GHSA-fxqj-rqcc-2cmp), nanoid (GHSA-28wg-ghj8-5hjv, GHSA-2v37-7h3g-55p8) and source-map-js (GHSA-68fv-2mgg-jv7q) by updating vite to 8.3.4 plus overrides to nanoid 3.3.18+ and source-map-js 1.2.2
-  - vitest / @vitest/mocker (GHSA-82fw-gwwq-j7x9) by updating vitest and @vitest/coverage-v8 to 4.1.11
-- pnpm overrides moved from the `pnpm` field in `package.json` (no longer read by pnpm 10) to `pnpm-workspace.yaml`, so they are applied again on install
-
-
+- Fixed all `pnpm audit` findings (1 critical, 9 high, 6 moderate, 1 low) through dependency updates rather than overrides; all were in dev or transitive dependencies, and the published library's runtime dependencies are unchanged apart from a floor bump of jose to ^6.2.12:
+  - express transitive deps: proxy-addr 2.0.8 (GHSA-jqcg-44mw-7w3h, critical), qs 6.16.0 (GHSA-4mjr-xmp4-gh2g, GHSA-x5fp-wj9c-mxmx), body-parser 2.3.0 (GHSA-v422-hmwv-36x6)
+  - vite 8.3.4, which brings postcss 8.5.29 (GHSA-r28c-9q8g-f849, GHSA-fxqj-rqcc-2cmp), nanoid 3.3.20 (GHSA-28wg-ghj8-5hjv, GHSA-2v37-7h3g-55p8) and source-map-js 1.2.2 (GHSA-68fv-2mgg-jv7q)
+  - vitest and @vitest/coverage-v8 4.1.11 (GHSA-82fw-gwwq-j7x9)
+  - sucrase 3.35.1 (via tsup) replaced glob/minimatch with tinyglobby, removing brace-expansion from the tree entirely (GHSA-3jxr-9vmj-r5cp, GHSA-mh99-v99m-4gvg, GHSA-rgw5-rvv9-x895, GHSA-6j4f-fj2g-mc7p, GHSA-qhr7-859c-m2p7, GHSA-q2hr-2g5m-vwhr)
+- Removed the brace-expansion and form-data pnpm overrides: both resolve to patched versions naturally now, and pnpm 10 no longer reads overrides from the `pnpm` field in `package.json` anyway
+- Refreshed remaining dev dependency ranges to current minors (biome 2.5, turbo 2.11, typescript 5.9, supertest 7.3, tsx 4.23, @types/node 24.19)
 ## [0.5.0] - 2026-06-29
 
 ### Fixed
